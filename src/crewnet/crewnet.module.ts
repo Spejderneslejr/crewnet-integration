@@ -1,5 +1,5 @@
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService, ConfigModule } from '@nestjs/config';
 import { CrewnetService } from './crewnet.service';
 
@@ -14,7 +14,7 @@ import { CrewnetService } from './crewnet.service';
     }),
   ],
   controllers: [],
-  providers: [CrewnetService],
-  exports: [CrewnetService],
+  providers: [CrewnetService, Logger],
+  exports: [CrewnetService, Logger],
 })
 export class CrewnetModule {}

@@ -1,15 +1,23 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import {
+  EventGetAll,
   GroupCreateCommand,
   UserCreateCommand,
   WorkplaceCreateCommand,
-} from './cli/user.command';
+  WorkplacesGetCommand,
+} from './cli/all.command';
 import { CrewnetModule } from './crewnet/crewnet.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [CrewnetModule, ConfigModule.forRoot({ isGlobal: true })],
 
-  providers: [UserCreateCommand, WorkplaceCreateCommand, GroupCreateCommand],
+  providers: [
+    UserCreateCommand,
+    WorkplaceCreateCommand,
+    GroupCreateCommand,
+    EventGetAll,
+    WorkplacesGetCommand,
+  ],
 })
 export class CliModule {}
