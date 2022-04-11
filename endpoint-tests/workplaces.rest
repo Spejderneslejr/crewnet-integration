@@ -1,0 +1,69 @@
+@nonce = {{$timestamp}}
+@event_id = {{$dotenv event_id}}
+###
+GET https://api.crewnet.dk/v1/workplaces?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
+POST https://api.crewnet.dk/v1/workplaces?event_workplace={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "Test workplace 1"
+}
+
+###
+POST https://api.crewnet.dk/v1/workplaces?event_workplace={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "Test workplace 1"
+}
+
+###
+@workplace_id=22
+PUT https://api.crewnet.dk/v1/workplaces/{{workplace_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "id": 22,
+    "name": "Tilgængelighedstest",
+    "workplace_category_id": null,
+    "age": 1,
+    "allow_create_happening": false,
+    "allow_comment": false,
+    "helper_need": 1
+}
+
+###
+@workplace_id=35
+DELETE https://api.crewnet.dk/v1/workplaces/{{workplace_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+
+###
+@workplace_id=22
+GET https://api.crewnet.dk/v1/workplaces/{{workplace_id}}/users?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+
+###
+@workplace_id=22
+# Mads
+@user_id=23168
+POST https://api.crewnet.dk/v1/workplaces/{{workplace_id}}/users?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "user_id": {{user_id}}
+}
+
+###
+@workplace_id=22
+# Mads
+@user_id=23168
+DELETE https://api.crewnet.dk/v1/workplaces/{{workplace_id}}/users/{{user_id}}?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
