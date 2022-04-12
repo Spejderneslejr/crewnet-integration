@@ -1,0 +1,122 @@
+@nonce = {{$timestamp}}
+# Spejdernes Lejr test
+@event_id = {{$dotenv event_id}}
+
+###
+# Get all groups added to a license
+GET https://api.crewnet.dk/v1/groups
+Authorization: Bearer {{$dotenv token}}
+
+
+###
+# Create a new group to a license
+#
+
+# Minimal
+POST https://api.crewnet.dk/v1/groups
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest group minimal"
+}
+
+###
+# Create a new group to a license
+#
+
+# All args, defaults.
+POST https://api.crewnet.dk/v1/groups
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest group defaults",
+  "external": true,
+  "can_only_apply_to_group_workplaces": false,
+  "allow_create_happening": false,
+  "allow_create_post": false,
+  "allow_invites": true,
+  "allow_comment": false,
+  "use_in_signup": false,
+  "use_for_subscription": false
+ }
+
+###
+# Create a new group to a license
+#
+
+# All args, defaults inversed.
+POST https://api.crewnet.dk/v1/groups
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest group defaults inversed",
+  "external": false,
+  "can_only_apply_to_group_workplaces": true,
+  "allow_create_happening": true,
+  "allow_create_post": true,
+  "allow_invites": false,
+  "allow_comment": true,
+  "use_in_signup": true,
+  "use_for_subscription": true
+ }
+
+###
+# Update information on a specific group
+#
+
+# All args, defaults inversed.
+@put_group_id=14
+
+PUT https://api.crewnet.dk/v1/groups/{{put_group_id}}
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest groups updated, minimal"
+ }
+
+###
+# Delete a group
+#
+@delete_group_id=11
+
+# All args, defaults inversed.
+DELETE https://api.crewnet.dk/v1/groups/{{delete_group_id}}
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
+# Get all group members
+#
+@get_group_members_id=15
+
+GET https://api.crewnet.dk/v1/groups/{{get_group_members_id}}/users
+Authorization: Bearer {{$dotenv token}}
+
+###
+# Add new members to a group
+#
+@post_group_members_id=15
+# Mads
+@post_group_members_user_id=23168
+
+POST https://api.crewnet.dk/v1/groups/{{post_group_members_id}}/users
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "user_id": {{post_group_members_user_id}}
+}
+
+###
+# Add new members to a group
+#
+@delete_group_members_id=15
+# Mads
+@delete_group_members_user_id=23168
+
+DELETE https://api.crewnet.dk/v1/groups/{{delete_group_members_id}}/users/{{delete_group_members_user_id}}
+Authorization: Bearer {{$dotenv token}}

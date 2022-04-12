@@ -1,10 +1,9 @@
-@nonce = {{$timestamp}}
 # Spejdernes Lejr test
 @event_id = {{$dotenv event_id}}
 
 ###
 # Add workplace to event
-
+#
 # Event association test
 @workplace_id=36
 POST https://api.crewnet.dk/v1/events/{{event_id}}/workplaces
@@ -17,7 +16,7 @@ Authorization: Bearer {{$dotenv token}}
 
 ###
 # Remove workplace from event
-
+#
 # Event association test
 @workplace_id=36
 DELETE https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}

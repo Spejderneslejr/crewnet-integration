@@ -1,0 +1,49 @@
+###
+# Gets all workplace categories added to a license
+GET https://api.crewnet.dk/v1/workplace_categories HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+
+###
+# Create a new workplace category to a license
+#
+# Minimal
+POST https://api.crewnet.dk/v1/workplace_categories HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest minimal create test 1"
+}
+
+###
+# Create a new workplace category to a license
+#
+# Full
+POST https://api.crewnet.dk/v1/workplace_categories HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest full create test 1",
+  "age_limit": "18",
+  "description": "workplace categories description goes here",
+  "shift_info": "shift_info goes here"
+}
+
+###
+@workplace_category_update_id=14
+PUT https://api.crewnet.dk/v1/workplace_categories/{{workplace_category_update_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "name": "apitest update category",
+  "age_limit": "18",
+  "description": "workplace categories description goes here",
+  "shift_info": "shift_info goes here"
+}
+
+###
+@workplace_category_delete_id=13
+DELETE https://api.crewnet.dk/v1/workplace_categories/{{workplace_category_delete_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}

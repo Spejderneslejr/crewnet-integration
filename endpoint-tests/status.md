@@ -2,7 +2,20 @@
 
 ## APIS
 
-The following sections documents the results of testing the individual API endpoints. If the test was successful it is marked with a ✅️ - if not it is marked with a ❌️ and a link documenting the details.
+The following sections documents the results of initial testing of the individual
+CrewNet API endpoints.
+
+If the test was successful it is marked with a ✅️ - if not it is marked with a ❌️
+and a link documenting the details.
+
+The test has been executed one-by-one by using the VS Code [Rest Client](https://github.com/Huachao/vscode-restclient).
+
+The test did not cover load tests or any other real-life loads that would eg.
+trigger a rate limit.
+
+## Questions
+
+* Will eg. `GET /v1/users` hold up when we have 4000 users?
 
 ### Events
 
@@ -26,70 +39,80 @@ Delete Workplace
 
 ✅️ `DELETE /v1/workplaces/{workplace_id}`, method was `DELETE` not `DEL`
 
-Get Workplace members
-
-✅️ `GET /v1/workplaces/{workplace_id}/users?event_id={event_id}`
-
-Add workplace member
-
-✅️ `POST /v1/workplaces/{workplace_id}/users?event_id={event_id}`
-
-Remove Workplace Member
-
-✅️ `DELETE /v1/workplaces/{workplace_id}/users/{user_id}?event_id={event_id}`
-
 ### Workplace events
+
+Add a workplace to event
 
 ❌️ `POST /v1/{event_id}/workplaces`, used `POST` instead of the documented `ADD` - [Fails on POST](#post-workplace-events)
 
-❓️ `DELETE /v1/{event_id}/workplaces/{workplace_id}` - [Does not seem to remove from event](#delete-workplace-events)
+Remove a workplace from an event
 
+❌️ `DELETE /v1/{event_id}/workplaces/{workplace_id}` - [Does not seem to remove from event](#delete-workplace-events)
 
 ### Groups
 
-❓️ `GET /v1/Groups`
+Get all groups added to a license
 
-❓️ `POST /v1/groups`
+✅️ `GET /v1/Groups`
 
-❓️ `PUT /v1/groups/{group_id}`
+Create a new group to a license
 
-❓️ `DEL /v1/groups/{group_id}`
+✅️ `POST /v1/groups`
 
-❓️ `GET /v1/groups/{group_id}/users`
+Update information on a specific group
 
-❓️ `POST /v1/groups/{group_id}/users`
+✅️ `PUT /v1/groups/{group_id}`
 
-❓️ `DEL /v1/groups/{group_id}/users/{user_id}`
+Delete a group
 
+✅️ `DELETE /v1/groups/{group_id}`
 
+Get all group members
+
+✅️ `GET /v1/groups/{group_id}/users`
+
+Add new members to a group
+
+✅️ `POST /v1/groups/{group_id}/users`
+
+Remove member from a group
+
+✅️ `DELETE /v1/groups/{group_id}/users/{user_id}`
 
 ### Workplace users
 
-❓️ `POST /v1/workplaces/{workplace_id}/users?event_id={ event_id}`
+✅️ `GET /v1/workplaces/{workplace_id}/users?event_id={event_id}`
 
-❓️ `GET /v1/workplaces/{99}/users?event_id={99}`
+✅️ `POST /v1/workplaces/{workplace_id}/users?event_id={ event_id}`
 
-❓️ `DEL /v1/workplaces/{workplace_id}/users/{userid}?event_id={event_id}`
-
+✅️ `DELETE /v1/workplaces/{workplace_id}/users/{userid}?event_id={event_id}`
 
 ### Workplace categories
 
-❓️ `GET /v1/workplace_categories`
+Gets all workplace categories added to a license
 
-❓️ `POST /v1/workplace_categories`
+✅️ `GET /v1/workplace_categories`
 
-❓️ `PUT /v1/workplace_categories/{workplace_category_id}`
+Create a new workplace category to a license
 
-❓️ `DEL /v1/workplace_categories/{workplace_category_id}`
+❌️ `POST /v1/workplace_categories`, [age is ignored](#post-workplace-categories)
+
+Update information to an existing workplace
+
+❌️ `PUT /v1/workplace_categories/{workplace_category_id}`, [age cannot be set](#put-workplace-categories)
+
+Delete a workplace category
+
+✅️ `DEL /v1/workplace_categories/{workplace_category_id}`
 
 
 ### Users
 
-❓️ `GET /v1/users?event_id={event_id}`
+✅️ `GET /v1/users?event_id={event_id}`
 
-❓️ `POST /v1/users`
+✅️ `POST /v1/users`
 
-❓️ `DEL /v1/users{user_id}`
+✅️ `DEL /v1/users{user_id}`
 
 
 ### Workplans
@@ -189,4 +212,39 @@ Sample request:
 $ curl --request DELETE \
   --url https://api.crewnet.dk/v1/events/2/workplaces/36 \
   --header 'authorization: Bearer ***'
+```
+
+### POST Workplace categories
+
+Status: returns a `200 OK` and creates a category, but the age is set to 0 even though it was specified.
+
+Sample request:
+
+```shell
+$ curl --request POST \
+  --url https://api.crewnet.dk/v1/workplace_categories \
+  --header 'authorization: Bearer ***' \
+  --header 'content-type: application/json' \
+  --data '{"name": "apitest full create test 1","age_limit": "18","description": "workplace categories description goes here","shift_info": "shift_info goes here"}'
+
+{"id":14,"name":"apitest full create test 1","description":"workplace categories description goes here","shift_info":"shift_info goes here","age_limit":0}
+
+```
+
+Also, the documentation does not describe which parameters are optional, but it is possible to create a category with just a name.
+
+### PUT Workplace categories
+
+Status: Very similar to the POST test - age is specified in the update request, but is ignored.
+
+Sample request:
+
+```shell
+$  curl --request PUT \
+  --url https://api.crewnet.dk/v1/workplace_categories/14 \
+  --header 'authorization: Bearer ***' \
+  --header 'content-type: application/json' \
+  --data '{"name": "apitest update category","age_limit": "18","description": "workplace categories description goes here","shift_info": "shift_info goes here"}'
+
+{"id":14,"name":"apitest update category","description":"workplace categories description goes here","shift_info":"shift_info goes here","age_limit":0}
 ```

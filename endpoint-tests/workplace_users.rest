@@ -1,0 +1,28 @@
+@event_id = {{$dotenv event_id}}
+
+###
+# Get all members from a specific workplace
+@get_workplace_users_id=22
+GET https://api.crewnet.dk/v1/workplaces/{{get_workplace_users_id}}/users?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+
+###
+# Add workplace to and event
+@post_workplace_users_id=22
+# Mads
+@user_id=23168
+POST https://api.crewnet.dk/v1/workplaces/{{post_workplace_users_id}}/users?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "user_id": {{user_id}}
+}
+
+###
+# Remove workfplace from event
+@workplace_id=22
+# Mads
+@user_id=23168
+DELETE https://api.crewnet.dk/v1/workplaces/{{workplace_id}}/users/{{user_id}}?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}

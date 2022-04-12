@@ -1,0 +1,27 @@
+@event_id = {{$dotenv event_id}}
+
+###
+# Get all users added to an event.
+GET https://api.crewnet.dk/v1/users?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
+# Create a new user
+POST https://api.crewnet.dk/v1/users?event_workplace={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "first_name": "Test",
+    "last_name": "Testesen",
+    "email": "test@testesen.dk",
+    "birthday": "1990-01-01",
+    "phone": "+4501020304"
+}
+
+###
+# Delete a user
+@delete_user_id=25130
+DELETE https://api.crewnet.dk/v1/users/{{delete_user_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
