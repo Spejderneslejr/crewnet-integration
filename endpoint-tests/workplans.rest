@@ -1,5 +1,5 @@
-
-# Availabillity test workplace
+###
+# Get workplan from workplace
 @workplace_id=22
 @event_id={{$dotenv event_id}}
 GET https://api.crewnet.dk/v1/workplaces/{{workplace_id}}/workplans?event_id={{event_id}}

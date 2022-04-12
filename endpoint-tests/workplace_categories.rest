@@ -31,6 +31,7 @@ content-type: application/json
 }
 
 ###
+# Update of workplace category
 @workplace_category_update_id=14
 PUT https://api.crewnet.dk/v1/workplace_categories/{{workplace_category_update_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
@@ -44,6 +45,7 @@ content-type: application/json
 }
 
 ###
+# Delete workplace category
 @workplace_category_delete_id=13
 DELETE https://api.crewnet.dk/v1/workplace_categories/{{workplace_category_delete_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
