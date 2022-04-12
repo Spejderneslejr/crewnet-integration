@@ -38,11 +38,11 @@ Remove Workplace Member
 
 ✅️ `DELETE /v1/workplaces/{workplace_id}/users/{user_id}?event_id={event_id}`
 
-### Workplace event
+### Workplace events
 
-❓️ `ADD /v1/{event_id}/workplaces`
+❌️ `POST /v1/{event_id}/workplaces`, used `POST` instead of the documented `ADD` - [Fails on POST](#post-workplace-events)
 
-❓️ `DELETE /v1/{event_id}/workplaces/{workplace_id}`
+❓️ `DELETE /v1/{event_id}/workplaces/{workplace_id}` - [Does not seem to remove from event](#delete-workplace-events)
 
 
 ### Groups
@@ -135,6 +135,7 @@ $ curl --request POST \
 ```
 
 ### PUT Workplace
+
 Status:  Error, returns error on first attempt
 
 Sample request
@@ -161,4 +162,31 @@ Second attempt seems to indicate that the workplace did get created.
 {
   "error": "Validation failed: Name has already been taken"
 }
+```
+
+### POST Workplace events
+
+Status: Fails, seems to be missing a workplace id
+
+Sample request:
+
+```shell
+$ curl --request POST \
+  --url https://api.crewnet.dk/v1/events/2/workplaces \
+  --header 'authorization: Bearer ***' \
+  --data '{"workplace_id": 36,"helper_need": 10}'
+
+{"error":"Couldn't find Workplace without an ID"}
+```
+
+### DELETE Workplace events
+
+Status: returns a `204 No Content` - subsequently the workplace is still associated with the event
+
+Sample request:
+
+```shell
+$ curl --request DELETE \
+  --url https://api.crewnet.dk/v1/events/2/workplaces/36 \
+  --header 'authorization: Bearer ***'
 ```
