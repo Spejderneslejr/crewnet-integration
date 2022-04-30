@@ -12,7 +12,7 @@ Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
 {
-  "name": "apitest minimal create test 1"
+  "name": "apitest minimal create test 2"
 }
 
 ###
@@ -25,27 +25,27 @@ content-type: application/json
 
 {
   "name": "apitest full create test 1",
-  "age_limit": "18",
+  "age": "18",
   "description": "workplace categories description goes here",
   "shift_info": "shift_info goes here"
 }
 
 ###
 # Update of workplace category
-@workplace_category_update_id=14
+@workplace_category_update_id=18
 PUT https://api.crewnet.dk/v1/workplace_categories/{{workplace_category_update_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
 {
-  "name": "apitest update category",
-  "age_limit": "18",
+  "name": "apitest update category 2",
+  "age": "19",
   "description": "workplace categories description goes here",
   "shift_info": "shift_info goes here"
 }
 
 ###
 # Delete workplace category
-@workplace_category_delete_id=13
+@workplace_category_delete_id=18
 DELETE https://api.crewnet.dk/v1/workplace_categories/{{workplace_category_delete_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}

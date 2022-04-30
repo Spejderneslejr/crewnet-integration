@@ -6,7 +6,8 @@ The following sections documents the results of initial testing of the individua
 CrewNet API endpoints.
 
 If the test was successful it is marked with a ✅️ - if not it is marked with a ❌️
-and a link documenting the details.
+and a link documenting the details. ⚠️  is used when a problem has been found but
+it does not seam breaking.
 
 The test has been executed one-by-one by using the VS Code [Rest Client](https://github.com/Huachao/vscode-restclient).
 
@@ -15,45 +16,89 @@ trigger a rate limit.
 
 ## Questions
 
-* Will eg. `GET /v1/users` hold up when we have 4000 users?
+1. Will eg. `GET /v1/users` hold up when we have 4000 users?
 
-### Events
+## General
+
+⚠️ the documentation uses a `DEL` HTTP method, but it is in fact `DELETE` that should be used.
+
+### 2 - Events
 
 ✅️ `GET /v1/events`
 
-### Workplaces
+### 3 - Workplaces
 
-Get workplaces for a specific event
-
-✅️ `GET /v1/workplaces?event_id={event_id}`
+⚠️  `helper_needed`  is referenced in all workplaces endpoints, but is not actually present.
+it should probably be removed altogether from the workplaces documentation as it
+seems to be a property that only makes sense for workplace events.
 
 Create a new workplace
 
-❌️ `POST /v1/workplaces` [Fails on create](#post-workplace)
+✅️ `POST /v1/workplaces`
 
 Update Workplace
 
-❌️ `PUT /v1/workplaces/{workplace_id}` [Fails on attempt to update](#put-workplace)
+✅️ `PUT /v1/workplaces/{workplace_id}`
 
 Delete Workplace
 
-✅️ `DELETE /v1/workplaces/{workplace_id}`, method was `DELETE` not `DEL`
+✅️ `DELETE /v1/workplaces/{workplace_id}`
 
-### Workplace events
+### 4 - Workplace categories
 
-Add a workplace to event
+Gets all workplace categories added to a license
 
-❌️ `POST /v1/{event_id}/workplaces`, used `POST` instead of the documented `ADD` - [Fails on POST](#post-workplace-events)
+✅️ `GET /v1/workplace_categories`
 
-Remove a workplace from an event
+Create a new workplace category to a license
 
-❌️ `DELETE /v1/{event_id}/workplaces/{workplace_id}` - [Does not seem to remove from event](#delete-workplace-events)
+✅️ `POST /v1/workplace_categories`
 
-### Groups
+Update information to an existing workplace
+
+✅️ `PUT /v1/workplace_categories/{workplace_category_id}`
+
+Delete a workplace category
+
+✅️ `DEL /v1/workplace_categories/{workplace_category_id}`
+
+### 5 - Event workplaces
+
+Get a list of all workplaces for an event:
+
+✅️ `GET /v1/events/{event_id}/workplaces`
+
+Add a workplace to event:
+
+❌️ `POST /v1/{event_id}/workplaces`, [Duplicates entries and requires an optional argument](#post-workplace-events)
+
+Remove a workplace from an event:
+
+⚠️ `DELETE /v1/{event_id}/workplaces/{workplace_id}` - Only deletes the first association
+even though multiple can currently exist due to the bug above. It is assumed that
+multiple associations is an invalid state though so not a critical error as such.
+
+### 6 - Workplace users/members
+
+✅️ `GET /v1/workplaces/{workplace_id}/users?event_id={event_id}`
+
+✅️ `POST /v1/workplaces/{workplace_id}/users?event_id={ event_id}`
+
+✅️ `DELETE /v1/workplaces/{workplace_id}/users/{userid}?event_id={event_id}`
+
+### 7 - Workplace applications
+
+✅️ `POST /v1/users/{user_id}/workplace_categories?event_id{event_id}`
+
+✅️/⚠️ `DELETE /v1/users/{user_id}/workplace_categories?event_id{event_id}` - the
+documentation leaves out a category-id in the path. If we add it in the test
+passes.
+
+### 8 - Groups
 
 Get all groups added to a license
 
-✅️ `GET /v1/Groups`
+✅️ `GET /v1/groups`
 
 Create a new group to a license
 
@@ -79,34 +124,7 @@ Remove member from a group
 
 ✅️ `DELETE /v1/groups/{group_id}/users/{user_id}`
 
-### Workplace users
-
-✅️ `GET /v1/workplaces/{workplace_id}/users?event_id={event_id}`
-
-✅️ `POST /v1/workplaces/{workplace_id}/users?event_id={ event_id}`
-
-✅️ `DELETE /v1/workplaces/{workplace_id}/users/{userid}?event_id={event_id}`
-
-### Workplace categories
-
-Gets all workplace categories added to a license
-
-✅️ `GET /v1/workplace_categories`
-
-Create a new workplace category to a license
-
-❌️ `POST /v1/workplace_categories`, [age is ignored](#post-workplace-categories)
-
-Update information to an existing workplace
-
-❌️ `PUT /v1/workplace_categories/{workplace_category_id}`, [age cannot be set](#put-workplace-categories)
-
-Delete a workplace category
-
-✅️ `DEL /v1/workplace_categories/{workplace_category_id}`
-
-
-### Users
+### 09 - Users
 
 ✅️ `GET /v1/users?event_id={event_id}`
 
@@ -115,9 +133,28 @@ Delete a workplace category
 ✅️ `DEL /v1/users{user_id}`
 
 
-### Workplans
+### 10 - Workplans
 
 ✅️ `GET /v1/workplaces/{workplace_id}/workplans?event_id={event_id}`
+
+### 11 - Availabilities
+
+Get availabilities for user:
+
+✅️ `GET /v1/users/{user_id}/availabilities`
+
+Create availabilities for a specific user:
+
+✅️/⚠️ `POST /v1/users/{user_id}/availabilities` - the endpoint can be called multiple times with the same input resulting in new availabilities to be created with identical date/time fields but unique ids.
+
+Update Availabilities for a specific user:
+
+✅️ `PUT /v1/users/{user_id}/availabilities/{availabilities_id}`
+
+Delete a users availability:
+
+✅️ `DELETE /v1/users/{user_id}/availabilities/{availabilities_id}`
+
 
 ## Issues
 
@@ -127,124 +164,30 @@ The following documents any issues encountered during tests
 
 1. When the documentation says to use a `DEL` method it is actually `DELETE`
 
-### POST Workplace
+### POST Workplace Events
 
-Status:  Error, returns error on first attempt
+Status: 200 OK
 
-```shell
-$ curl --request POST \
-  --url 'https://api.crewnet.dk/v1/workplaces?event_workplace=2' \
-  --header 'authorization: Bearer ***' \
-  --header 'content-type: application/json' \
-  --data '{"name": "Test workplace 1"}'
-
-{
-  "error": "undefined local variable or method `event_workplace' for #\u003c#\u003cClass:0x00007fe2dfcdfec8\u003e:0x00007fe2df528090\u003e\nDid you mean?  event_url"
-}
-```
-
-Second attempt seems to indicate that the workplace did get created.
-
-```shell
-$ curl --request POST \
-  --url 'https://api.crewnet.dk/v1/workplaces?event_workplace=2' \
-  --header 'authorization: Bearer ***' \
-  --header 'content-type: application/json' \
-  --data '{"name": "Test workplace 1"}'
-
-{
-  "error": "Validation failed: Name has already been taken"
-}
-```
-
-### PUT Workplace
-
-Status:  Error, returns error on first attempt
-
-Sample request
-
-```shell
-$ curl --request PUT \
-  --url https://api.crewnet.dk/v1/workplaces/22 \
-  --header 'authorization: Bearer ***' \
-  --header 'content-type: application/json' \
-  --data '{"id": 22,"name": "Tilgængelighedstest","workplace_category_id": null,"age": 1,"allow_create_happening": false,"allow_comment": false,"helper_need": 1}'
-
-{"error":"undefined local variable or method `event_workplace' for #\u003c#\u003cClass:0x00007fe2dfcdfec8\u003e:0x00005567141692b8\u003e\nDid you mean?  event_url"}
-```
-
-```json
-{
-  "error": "undefined local variable or method `event_workplace' for #\u003c#\u003cClass:0x00007fe2dfcdfec8\u003e:0x00007fe2df528090\u003e\nDid you mean?  event_url"
-}
-```
-
-Second attempt seems to indicate that the workplace did get created.
-
-```json
-{
-  "error": "Validation failed: Name has already been taken"
-}
-```
-
-### POST Workplace events
-
-Status: Fails, seems to be missing a workplace id
-
-Sample request:
+1. An association is created each time the endpoint is invoked, which results in
+duplicated entries in the event workplace list in the Crewnet UI. Calling `GET /v1/events/{event_id}/workplaces`
+also show the extra associations that may have different `helper_need` values.
+Subsequent attempts at deleting or updating event workplaces only affects one of
+the entries.
 
 ```shell
 $ curl --request POST \
   --url https://api.crewnet.dk/v1/events/2/workplaces \
-  --header 'authorization: Bearer ***' \
-  --data '{"workplace_id": 36,"helper_need": 10}'
-
-{"error":"Couldn't find Workplace without an ID"}
+  --header 'content-type: application/json' \
+  --data '{"workplace_id": 36,"helper_need": 20}'
 ```
 
-### DELETE Workplace events
-
-Status: returns a `204 No Content` - subsequently the workplace is still associated with the event
-
-Sample request:
-
-```shell
-$ curl --request DELETE \
-  --url https://api.crewnet.dk/v1/events/2/workplaces/36 \
-  --header 'authorization: Bearer ***'
-```
-
-### POST Workplace categories
-
-Status: returns a `200 OK` and creates a category, but the age is set to 0 even though it was specified.
-
-Sample request:
+2. `helper_need` is documented as optional but if left out an error is returned
 
 ```shell
 $ curl --request POST \
-  --url https://api.crewnet.dk/v1/workplace_categories \
-  --header 'authorization: Bearer ***' \
+  --url https://api.crewnet.dk/v1/events/2/workplaces \
   --header 'content-type: application/json' \
-  --data '{"name": "apitest full create test 1","age_limit": "18","description": "workplace categories description goes here","shift_info": "shift_info goes here"}'
+  --data '{"workplace_id": 36}'
 
-{"id":14,"name":"apitest full create test 1","description":"workplace categories description goes here","shift_info":"shift_info goes here","age_limit":0}
-
-```
-
-Also, the documentation does not describe which parameters are optional, but it is possible to create a category with just a name.
-
-### PUT Workplace categories
-
-Status: Very similar to the POST test - age is specified in the update request, but is ignored.
-
-Sample request:
-
-```shell
-$  curl --request PUT \
-  --url https://api.crewnet.dk/v1/workplace_categories/14 \
-  --header 'authorization: Bearer ***' \
-  --header 'content-type: application/json' \
-  --data '{"name": "apitest update category","age_limit": "18","description": "workplace categories description goes here","shift_info": "shift_info goes here"}'
-
-{"id":14,"name":"apitest update category","description":"workplace categories description goes here","shift_info":"shift_info goes here","age_limit":0}
+{"error":"Validation failed: Helper need must be greater than 0"}
 ```

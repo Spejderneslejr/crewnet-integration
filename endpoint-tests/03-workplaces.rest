@@ -1,0 +1,58 @@
+@event_id = {{$dotenv event_id}}
+###
+# Get all workplaces for the license
+#
+GET https://api.crewnet.dk/v1/workplaces HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
+# Create workplace
+#
+# Minimal
+POST https://api.crewnet.dk/v1/workplaces HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "name": "Test workplace - minimal"
+}
+
+###
+# Create workplace
+#
+# Full
+POST https://api.crewnet.dk/v1/workplaces HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "name": "Test workplace - full",
+    "workplace_category_id": 17,
+    "age": 1,
+    "helper_need": 1,
+    "allow_create_happening": true,
+    "allow_comment": true
+}
+
+###
+# Update a workplace
+#
+@put_workplace_id=37
+PUT https://api.crewnet.dk/v1/workplaces/{{put_workplace_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "id": 22,
+    "age": 2,
+    "allow_create_happening": false,
+    "allow_comment": false,
+    "helper_need": 2
+}
+
+###
+# Delete a workplace
+@delete_workplace_id=37
+DELETE https://api.crewnet.dk/v1/workplaces/{{delete_workplace_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}

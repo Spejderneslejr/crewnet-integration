@@ -22,6 +22,6 @@ content-type: application/json
 
 ###
 # Delete a user
-@delete_user_id=25130
+@delete_user_id=25566
 DELETE https://api.crewnet.dk/v1/users/{{delete_user_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}

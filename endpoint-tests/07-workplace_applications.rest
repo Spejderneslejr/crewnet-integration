@@ -1,0 +1,22 @@
+@event_id = {{$dotenv event_id}}
+
+###
+# Place a user into a application category.
+@workplace_category_id=17
+# Mads
+@user_id=23168
+POST https://api.crewnet.dk/v1/users/{{user_id}}/workplace_categories?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "workplace_category_id": {{workplace_category_id}}
+}
+
+###
+# Place a user into a application category.
+@workplace_category_id=17
+# Mads
+@user_id=23168
+DELETE https://api.crewnet.dk/v1/users/{{user_id}}/workplace_categories/{{workplace_category_id}}?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}

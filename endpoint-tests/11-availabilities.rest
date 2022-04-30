@@ -1,0 +1,60 @@
+# Availabilities
+@event_id = {{$dotenv event_id}}
+
+###
+# Get all groups added to a license
+#
+# Mads
+@get_user_id=23168
+GET https://api.crewnet.dk/v1/users/{{get_user_id}}/availabilities
+Authorization: Bearer {{$dotenv token}}
+
+###
+# Create availabilities for a specific user.
+#
+@post_user_id=23168
+POST https://api.crewnet.dk/v1/users/{{post_user_id}}/availabilities
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "start_date": "2022-07-04T16:00:00.000+02:00",
+  "end_date": "2022-07-04T23:59:00.000+02:00",
+  "available": false
+}
+
+###
+# Create availabilities for a specific user.
+#
+@post_user_id=23168
+POST https://api.crewnet.dk/v1/users/{{post_user_id}}/availabilities
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "start_date": "2022-07-05T16:00:00.000+02:00",
+  "end_date": "2022-07-05T23:59:00.000+02:00",
+  "available": true
+}
+
+###
+# Update availabilities for a specific user.
+@put_user_id=23168
+@put_availabilities_id=9
+PUT https://api.crewnet.dk/v1/users/{{put_user_id}}/availabilities/{{put_availabilities_id}}
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "start_date": "2022-07-04T16:00:00.000+02:00",
+  "end_date": "2022-07-04T23:59:00.000+02:00",
+  "available": false
+}
+
+###
+# Delete availabilities for a specific user.
+#
+@delete_user_id=23168
+@delete_availabilities_id=10
+DELETE https://api.crewnet.dk/v1/users/{{delete_user_id}}/availabilities/{{delete_availabilities_id}}
+Authorization: Bearer {{$dotenv token}}

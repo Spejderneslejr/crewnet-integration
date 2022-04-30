@@ -68,7 +68,7 @@ content-type: application/json
 #
 
 # All args, defaults inversed.
-@put_group_id=14
+@put_group_id=17
 
 PUT https://api.crewnet.dk/v1/groups/{{put_group_id}}
 Authorization: Bearer {{$dotenv token}}
@@ -81,8 +81,7 @@ content-type: application/json
 ###
 # Delete a group
 #
-@delete_group_id=11
-
+@delete_group_id=16
 # All args, defaults inversed.
 DELETE https://api.crewnet.dk/v1/groups/{{delete_group_id}}
 Authorization: Bearer {{$dotenv token}}

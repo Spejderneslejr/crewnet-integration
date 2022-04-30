@@ -1,0 +1,1100 @@
+{
+	"info": {
+		"_postman_id": "94148a93-74f8-4d56-8450-2f80fef57152",
+		"name": "v1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Workplace Categories",
+					"item": [
+						{
+							"name": "Apply to category",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"workplace_category_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{apiUrl}}/v1/users/285/workplace_categories?event_id=8",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"285",
+										"workplace_categories"
+									],
+									"query": [
+										{
+											"key": "event_id",
+											"value": "8"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Withdraw application",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{apiUrl}}/v1/users/285/workplace_categories/1?event_id=8",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"285",
+										"workplace_categories",
+										"1"
+									],
+									"query": [
+										{
+											"key": "event_id",
+											"value": "8"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Availabilities",
+					"item": [
+						{
+							"name": "Get availabilities",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{apiUrl}}/v1/users/285/availabilities",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"285",
+										"availabilities"
+									],
+									"query": [
+										{
+											"key": "start_date",
+											"value": "2022-08-12",
+											"description": "Optional",
+											"disabled": true
+										},
+										{
+											"key": "end_date",
+											"value": "2022-08-30",
+											"description": "Optional",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create availability",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"start_date\": \"2022-04-30 00:00\",\n    \"end_date\": \"2022-04-30 08:00\",\n    \"available\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{apiUrl}}/v1/users/285/availabilities",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"285",
+										"availabilities"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update availability",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"start_date\": \"2022-04-30 00:00\",\n    \"end_date\": \"2022-04-30 08:00\",\n    \"available\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{apiUrl}}/v1/users/285/availabilities/25",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"285",
+										"availabilities",
+										"25"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete availability",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{apiUrl}}/v1/users/285/availabilities/25",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"285",
+										"availabilities",
+										"25"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get all users",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/users?event_id=11",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "event_id",
+									"value": "11"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create user",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Test\",\n    \"last_name\": \"Testesen\",\n    \"email\": \"test@testesen.dk\",\n    \"birthday\": \"1990-01-01\",\n    \"phone\": \"+4501020304\"                      // Optional, default null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/users",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete user",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/users/295",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"295"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Workplace Categories",
+			"item": [
+				{
+					"name": "Get all workplace categories",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplace_categories",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplace_categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create workplace category",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Bars5\",\n    \"age\": 18,\n    \"description\": \"Bar 1, Bar 2\",\n    \"shift_info\": \"You will serve beer and drinks\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplace_categories",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplace_categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update workplace category",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Bars & food stalls\",\n    \"age\": 18,\n    \"description\": \"Bar 1, Bar 2\",\n    \"shift_info\": \"You will serve beer and drinks\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplace_categories/13",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplace_categories",
+								"13"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete workplace category",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplace_categories/13",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplace_categories",
+								"13"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Groups",
+			"item": [
+				{
+					"name": "Get all groups",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create group",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test group\",\n    \"external\": false,                          // Optional, default true\n    \"can_only_apply_to_group_workplaces\": true, // Optional, default false\n    \"allow_create_happening\": true,             // Optional, default false\n    \"allow_create_post\": true,                  // Optional, default false\n    \"allow_invites\": true,                      // Optional, default true\n    \"allow_comment\": true,                      // Optional, default false\n    \"use_in_signup\": true,                      // Optional, default false\n    \"use_for_subscription\": true                // Optional, default false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update group",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test group\",\n    \"external\": false,                          // Optional, default true\n    \"can_only_apply_to_group_workplaces\": true, // Optional, default false\n    \"allow_create_happening\": true,             // Optional, default false\n    \"allow_create_post\": true,                  // Optional, default false\n    \"allow_invites\": false,                     // Optional, default true\n    \"allow_comment\": false,                     // Optional, default false\n    \"use_in_signup\": false,                     // Optional, default false\n    \"use_for_subscription\": true                // Optional, default false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups/74",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups",
+								"74"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete group",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups/74",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups",
+								"74"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get group members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups/2/users",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups",
+								"2",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add group member",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": 263\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups/2/users",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups",
+								"2",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove group member",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{apiUrl}}/v1/groups/2/users/263",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"groups",
+								"2",
+								"users",
+								"263"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Workplaces",
+			"item": [
+				{
+					"name": "Get all workplaces",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplaces",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplaces"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create workplace",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test workplace\",\n    \"workplace_category_id\": null,              // Optional, default null\n    \"age\": 18,                                  // Optional, default 0\n    \"helper_need\": 5,                           // Optional, default 1\n    \"allow_create_happening\": true,             // Optional, default false\n    \"allow_comment\": true                       // Optional, default false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplaces",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplaces"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update workplace",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test workplace new\",\n    \"workplace_category_id\": null,              // Optional, default null\n    \"age\": 18,                                  // Optional, default 0\n    \"allow_create_happening\": true,             // Optional, default false\n    \"allow_comment\": true                       // Optional, default false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplaces/16",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplaces",
+								"16"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete workplace",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/workplaces/16",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"workplaces",
+								"16"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Event Workplaces",
+					"item": [
+						{
+							"name": "Users",
+							"item": [
+								{
+									"name": "Get workplace members",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{apiUrl}}/v1/events/8/workplaces/15/users",
+											"host": [
+												"{{apiUrl}}"
+											],
+											"path": [
+												"v1",
+												"events",
+												"8",
+												"workplaces",
+												"15",
+												"users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Add workplace member",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"user_id\": 276\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{apiUrl}}/v1/events/8/workplaces/15/users",
+											"host": [
+												"{{apiUrl}}"
+											],
+											"path": [
+												"v1",
+												"events",
+												"8",
+												"workplaces",
+												"15",
+												"users"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Remove workplace member",
+									"request": {
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{apiUrl}}/v1/events/8/workplaces/15/users/276",
+											"host": [
+												"{{apiUrl}}"
+											],
+											"path": [
+												"v1",
+												"events",
+												"8",
+												"workplaces",
+												"15",
+												"users",
+												"276"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Workplans",
+							"item": [
+								{
+									"name": "Get all workplans",
+									"protocolProfileBehavior": {
+										"followRedirects": false,
+										"followOriginalHttpMethod": false,
+										"followAuthorizationHeader": false
+									},
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "{{apiUrl}}/v1/events/8/workplaces/15/workplans",
+											"host": [
+												"{{apiUrl}}"
+											],
+											"path": [
+												"v1",
+												"events",
+												"8",
+												"workplaces",
+												"15",
+												"workplans"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Get all event workplaces",
+							"protocolProfileBehavior": {
+								"followRedirects": false,
+								"followOriginalHttpMethod": false,
+								"followAuthorizationHeader": false
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{apiUrl}}/v1/events/8/workplaces",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"events",
+										"8",
+										"workplaces"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add workplace to event",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"workplace_id\": 15,\n    \"helper_need\": 20                                   // Optional, default 10\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{apiUrl}}/v1/events/8/workplaces",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"events",
+										"8",
+										"workplaces"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update event workplace",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"helper_need\": 25                                   // Optional, default 10\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{apiUrl}}/v1/events/8/workplaces/15",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"events",
+										"8",
+										"workplaces",
+										"15"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove workplace from event",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Test workplace\",\n    \"workplace_category_id\": null,              // Optional, default null\n    \"age\": 18,                                  // Optional, default 0\n    \"helper_need\": 5,                           // Optional, default 1\n    \"allow_create_happening\": true,             // Optional, default false\n    \"allow_comment\": true                       // Optional, default false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{apiUrl}}/v1/events/8/workplaces/15",
+									"host": [
+										"{{apiUrl}}"
+									],
+									"path": [
+										"v1",
+										"events",
+										"8",
+										"workplaces",
+										"15"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get all events",
+					"protocolProfileBehavior": {
+						"followRedirects": false,
+						"followOriginalHttpMethod": false,
+						"followAuthorizationHeader": false
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{apiUrl}}/v1/events",
+							"host": [
+								"{{apiUrl}}"
+							],
+							"path": [
+								"v1",
+								"events"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

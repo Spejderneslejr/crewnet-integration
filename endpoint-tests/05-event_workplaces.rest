@@ -1,0 +1,57 @@
+# Spejdernes Lejr test
+@event_id = {{$dotenv event_id}}
+###
+# Get all workplaces for an event
+#
+GET https://api.crewnet.dk/v1/events/{{event_id}}/workplaces HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+
+###
+# Add workplace to event
+#
+# Event association test
+# Minimal
+@workplace_id=38
+POST https://api.crewnet.dk/v1/events/{{event_id}}/workplaces
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "workplace_id": {{workplace_id}}
+}
+
+###
+# Add workplace to event
+#
+# Event association test
+# Minimal
+@workplace_id=38
+POST https://api.crewnet.dk/v1/events/{{event_id}}/workplaces
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+    "workplace_id": {{workplace_id}},
+    "helper_need": 20
+}
+
+###
+# Update workplace
+#
+# Event association test
+@workplace_id=36
+PUT https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+{
+  "helper_need": 22
+}
+
+###
+# Remove workplace from event
+#
+# Event association test
+@workplace_id=38
+DELETE https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}
+Authorization: Bearer {{$dotenv token}}
