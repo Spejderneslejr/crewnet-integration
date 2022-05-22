@@ -3,7 +3,7 @@
 ###
 # Get all workplaces for an event
 #
-GET https://api.crewnet.dk/v1/events/{{event_id}}/workplaces HTTP/1.1
+GET https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 
 ###
@@ -12,7 +12,7 @@ Authorization: Bearer {{$dotenv token}}
 # Event association test
 # Minimal
 @workplace_id=38
-POST https://api.crewnet.dk/v1/events/{{event_id}}/workplaces
+POST https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -26,7 +26,7 @@ content-type: application/json
 # Event association test
 # Minimal
 @workplace_id=38
-POST https://api.crewnet.dk/v1/events/{{event_id}}/workplaces
+POST https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -40,7 +40,7 @@ content-type: application/json
 #
 # Event association test
 @workplace_id=36
-PUT https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}
+PUT https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces/{{workplace_id}}
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -53,5 +53,5 @@ content-type: application/json
 #
 # Event association test
 @workplace_id=38
-DELETE https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}
+DELETE https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces/{{workplace_id}}
 Authorization: Bearer {{$dotenv token}}

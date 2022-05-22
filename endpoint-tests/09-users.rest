@@ -2,13 +2,19 @@
 
 ###
 # Get all users added to an event.
-GET https://api.crewnet.dk/v1/users?event_id={{event_id}} HTTP/1.1
+GET https://{{$dotenv apidomain}}/v1/users?event_id={{event_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
+# Get all users added to an event.
+GET https://{{$dotenv apidomain}}/v1/users?event_id={{event_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
 ###
 # Create a new user
-POST https://api.crewnet.dk/v1/users?event_workplace={{event_id}} HTTP/1.1
+POST https://{{$dotenv apidomain}}/v1/users?event_workplace={{event_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -22,6 +28,6 @@ content-type: application/json
 
 ###
 # Delete a user
-@delete_user_id=25566
-DELETE https://api.crewnet.dk/v1/users/{{delete_user_id}} HTTP/1.1
+@delete_user_id=26741
+DELETE https://{{$dotenv apidomain}}/v1/users/{{delete_user_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}

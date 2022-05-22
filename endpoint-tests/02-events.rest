@@ -1,6 +1,12 @@
 ###
 # List of all events
-GET https://api.crewnet.dk/v1/events HTTP/1.1
+GET https://{{$dotenv apidomain}}/v1/events HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
+# List of all events
+GET https://{{$dotenv apidomain}}/v1/events HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 

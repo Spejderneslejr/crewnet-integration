@@ -4,7 +4,7 @@
 
 ###
 # Get all groups added to a license
-GET https://api.crewnet.dk/v1/groups
+GET https://{{$dotenv apidomain}}/v1/groups
 Authorization: Bearer {{$dotenv token}}
 
 
@@ -13,7 +13,7 @@ Authorization: Bearer {{$dotenv token}}
 #
 
 # Minimal
-POST https://api.crewnet.dk/v1/groups
+POST https://{{$dotenv apidomain}}/v1/groups
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -26,7 +26,7 @@ content-type: application/json
 #
 
 # All args, defaults.
-POST https://api.crewnet.dk/v1/groups
+POST https://{{$dotenv apidomain}}/v1/groups
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -47,7 +47,7 @@ content-type: application/json
 #
 
 # All args, defaults inversed.
-POST https://api.crewnet.dk/v1/groups
+POST https://{{$dotenv apidomain}}/v1/groups
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -70,7 +70,7 @@ content-type: application/json
 # All args, defaults inversed.
 @put_group_id=17
 
-PUT https://api.crewnet.dk/v1/groups/{{put_group_id}}
+PUT https://{{$dotenv apidomain}}/v1/groups/{{put_group_id}}
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -83,7 +83,7 @@ content-type: application/json
 #
 @delete_group_id=16
 # All args, defaults inversed.
-DELETE https://api.crewnet.dk/v1/groups/{{delete_group_id}}
+DELETE https://{{$dotenv apidomain}}/v1/groups/{{delete_group_id}}
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -92,7 +92,7 @@ content-type: application/json
 #
 @get_group_members_id=15
 
-GET https://api.crewnet.dk/v1/groups/{{get_group_members_id}}/users
+GET https://{{$dotenv apidomain}}/v1/groups/{{get_group_members_id}}/users
 Authorization: Bearer {{$dotenv token}}
 
 ###
@@ -102,7 +102,7 @@ Authorization: Bearer {{$dotenv token}}
 # Mads
 @post_group_members_user_id=23168
 
-POST https://api.crewnet.dk/v1/groups/{{post_group_members_id}}/users
+POST https://{{$dotenv apidomain}}/v1/groups/{{post_group_members_id}}/users
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -117,5 +117,5 @@ content-type: application/json
 # Mads
 @delete_group_members_user_id=23168
 
-DELETE https://api.crewnet.dk/v1/groups/{{delete_group_members_id}}/users/{{delete_group_members_user_id}}
+DELETE https://{{$dotenv apidomain}}/v1/groups/{{delete_group_members_id}}/users/{{delete_group_members_user_id}}
 Authorization: Bearer {{$dotenv token}}

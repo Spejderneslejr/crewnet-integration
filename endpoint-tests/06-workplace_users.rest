@@ -3,7 +3,7 @@
 ###
 # Get all members from a specific workplace
 @get_workplace_users_id=22
-GET https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{get_workplace_users_id}}/users HTTP/1.1
+GET https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces/{{get_workplace_users_id}}/users HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 
 ###
@@ -11,7 +11,7 @@ Authorization: Bearer {{$dotenv token}}
 @post_workplace_users_id=22
 # Mads
 @user_id=23168
-POST https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{post_workplace_users_id}}/users HTTP/1.1
+POST https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces/{{post_workplace_users_id}}/users HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
@@ -24,5 +24,5 @@ content-type: application/json
 @workplace_id=22
 # Mads
 @user_id=23168
-DELETE https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}/users/{{user_id}} HTTP/1.1
+DELETE https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces/{{workplace_id}}/users/{{user_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}

@@ -2,6 +2,6 @@
 # Get workplan from workplace
 @workplace_id=22
 @event_id={{$dotenv event_id}}
-GET https://api.crewnet.dk/v1/events/{{event_id}}/workplaces/{{workplace_id}}/workplans
+GET https://{{$dotenv apidomain}}/v1/events/{{event_id}}/workplaces/{{workplace_id}}/workplans
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
