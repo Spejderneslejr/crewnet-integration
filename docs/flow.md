@@ -121,7 +121,7 @@ crewnet -->> user: accept login
 user ->> crewnet: Starts using CrewNet
 ```
 
-## Workplace creation
+## Workplace creation (manual)
 
 CampOS is not able to deduce which workplaces should exist in crewnet. As an alternative we may implement a simple tool that given a list of workplaces creates them automatically.
 
@@ -154,7 +154,7 @@ cli ->> crewnet: Add workplace to event: POST /v1/events/(event_id)/workplaces
 
 ```
 
-## Add workplace members
+## Add workplace members (manual)
 
 CampOS is not able to deduce which users should be a member of a given workplace. Instead we promote a number of users to administrators and let them create their workplaces and add volunteers as members. This requires a lot of clicks in the webintefaces, so reduce the amount of manual work, we may implement a commandline interface that given a list of camp volunteers that should be members of a given workplace makes this association.
 
