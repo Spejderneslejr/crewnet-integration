@@ -4,14 +4,14 @@ The following document describes which parts of the CrewNet API is used by the c
 
 We have the following integrations
 
-* User creation (initial + continuous)
-* User availability synchronization
-* Oauth based SSO login
+* [User creation](#user-creation) (initial + continuous)
+* [User availability synchronization](#availability-synchronization)
+* [Oauth based SSO login](#single-sign-on)
 
 Besides the automatic integration driven by CampOS, we expect to have the following flows driven by ad-hoc executions of scripts:
 
-* Workplace creation
-* Workplace association
+* [Workplace creation](#workplace-creation-manual)
+* [Workplace association](#workplace-member-association)
 
 ## User creation
 
@@ -31,7 +31,6 @@ sequenceDiagram
     participant campos as CampOS
     participant crewnet as CrewNet
 
-campos ->> campos: A user is created
 campos ->> crewnet: Query for users: GET /v1/users
 crewnet -->> campos: Users
 campos ->> campos: Filter users to create based on user status
@@ -54,7 +53,7 @@ sequenceDiagram
     participant campos as CampOS
     participant crewnet as CrewNet
 
-campos ->> campos: A user reaches is created
+campos ->> campos: A user is given a CampOS function
 campos ->> crewnet: Query for users: GET /v1/users
 crewnet -->> campos: Users
 campos ->> crewnet: Create user if missing: POST /v1/users
@@ -72,22 +71,17 @@ CampOS continuously synchronizes users availability
 * POST /v1/users/(userid)/availabilities
 * DELETE /v1/users/(userid)/availabilities/(id)
 
-### User creation flow
+### Availability flow
 
 ```mermaid
 sequenceDiagram
     participant campos as CampOS
     participant crewnet as CrewNet
 
-campos ->> campos: Triggered by user creation or update
+campos ->> campos: Triggered by user status = active or an camp_day update
 campos ->> crewnet: Get availability for user: GET /v1/users/(userid)/availabilities
-crewnet -->> campos: availabilities
-loop Every availability out of sync
-    campos ->> crewnet: Create/Update/Delete via POST/PUT/DELETE: /v1/users/(userid)/availabilities
-end
-note over campos, crewnet: alternative
 campos ->> crewnet: Delete all availabilities: DELETE /v1/users/(userid)/availabilities(id) (multiple)
-campos ->> crewnet: Create availabilities: POST /v1/users/(userid)/availabilities (multiple)
+campos ->> crewnet: Create 1 availabiliy pr. day: POST /v1/users/(userid)/availabilities (multiple)
 
 ```
 
@@ -112,6 +106,7 @@ sequenceDiagram
 user ->> crewnet: Click "Login with crewnet"
 crewnet -->> user: Redirect to CampOS
 user ->> campos: Perform login
+campos ->> campos: Verify user is active
 campos -->> user: Redirect to CrewNet with authentication data and token
 user ->> crewnet: Pass on CampOS auth data
 crewnet ->> crewnet: Verify data
@@ -165,7 +160,7 @@ CampOS is not able to deduce which users should be a member of a given workplace
 * GET /v1/events/(event-id)/workplaces/(workplace-id)/users
 * POST /v1/events/(event-id)/workplaces/(workplace_id)/users
 
-### Workplace member association
+### Workplace member association flow
 
 ```mermaid
 sequenceDiagram
@@ -184,5 +179,3 @@ loop Add every missing user to the workplace
     cli ->> crewnet: POST /v1/events/(event-id)/workplaces/(workplace_id)/users
 end
 ```
-
-###
