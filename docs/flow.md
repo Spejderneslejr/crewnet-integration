@@ -116,6 +116,64 @@ crewnet -->> user: accept login
 user ->> crewnet: Starts using CrewNet
 ```
 
+## Workplace category (manual)
+
+CampOS associates volunteers to "units" that correlates well to the groups of workers we may want to associate with a workplace. To ease the administration of adding workers to workplaces we have a manual process in place of first extracting a list of users from CampOS and then synchronizing the list with a workplace category.
+
+### CrewNet API used
+
+* TODO
+  GET /v1/workplaces
+* POST /v1/workplaces
+* GET /v1/events/(event_id)/workplaces
+* POST /v1/events/(event_id)/workplaces
+
+### Workplace category synchronization flow
+
+#### Volunteer list extraction
+
+```mermaid
+sequenceDiagram
+participant admin as Administrator
+participant campos as CampOS
+
+admin ->> campos: Export list of volunteers with a <br>function at or below the unit
+campos -->> admin: xls with Odoo Partner IDs
+
+```
+
+Synchronize workplace category
+
+```mermaid
+sequenceDiagram
+participant cli as Commandline Interface
+participant crewnet as CrewNet
+
+cli ->> cli: Read input workplace id, name and xls file with <br>(campos unit id, user id) pairs 
+cli ->> crewnet: Get existing categories: GET /v1/workplace_categories
+crewnet -->> cli: categories
+cli ->> crewnet: Create category if it did not exist
+crewnet -->> cli: Workplace category id
+
+cli ->> crewnet: Get existing users
+crewnet -->> cli: users
+cli ->> cli: Map CampOS user id's to CrewNet via <camposid>@campos.sl2022.dk mails<br>Verify all users exists, emit warnings for any missing
+alt (don't expect to do this currently)
+cli ->> crewnet: Get all workplaces to see which are associated with the category
+crewnet -->> cli: workplaces
+cli ->> cli: Create list of volunteers associated with workplaces
+end
+loop For each volunteer
+    alt If user is missing from CrewNet
+      cli ->> crewnet: POST /v1/users/(crewnet_user_id)/workplace_categories/(workplace_category_id)
+    else If user is missing from CampOS<br>(currently impossible!)
+      cli ->> crewnet: DELETE /v1/users/(user_id)/workplace_categories/(workplace_category_id)
+    end
+end
+
+
+```
+
 ## Workplace creation (manual)
 
 CampOS is not able to deduce which workplaces should exist in crewnet. As an alternative we may implement a simple tool that given a list of workplaces creates them automatically.
