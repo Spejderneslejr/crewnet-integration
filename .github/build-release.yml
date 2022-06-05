@@ -5,12 +5,7 @@
 
 name: Create and publish a Docker image
 
-on:
-  push:
-    # React on pushes of branches (Adding a pattern for the branches lets us
-    # ignore push of tags)
-    branches:
-      - '**'
+on: push
 
 env:
   REGISTRY: ghcr.io
