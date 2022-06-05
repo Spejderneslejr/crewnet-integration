@@ -122,10 +122,9 @@ CampOS associates volunteers to "units" that correlates well to the groups of wo
 
 ### CrewNet API used
 
-* TODO
-  GET /v1/workplaces
+* GET /v1/workplaces
 * POST /v1/workplaces
-* GET /v1/events/(event_id)/workplaces
+* GET /v1/events/(event_id)/workplace
 * POST /v1/events/(event_id)/workplaces
 
 ### Workplace category synchronization flow
@@ -142,14 +141,14 @@ campos -->> admin: xls with Odoo Partner IDs
 
 ```
 
-Synchronize workplace category
+Synchronize workplace category **Note - this is out of date**
 
 ```mermaid
 sequenceDiagram
 participant cli as Commandline Interface
 participant crewnet as CrewNet
 
-cli ->> cli: Read input workplace id, name and xls file with <br>(campos unit id, user id) pairs 
+cli ->> cli: Read input workplace id, name and xls file with <br>(campos unit id, user id) pairs
 cli ->> crewnet: Get existing categories: GET /v1/workplace_categories
 crewnet -->> cli: categories
 cli ->> crewnet: Create category if it did not exist
@@ -157,7 +156,7 @@ crewnet -->> cli: Workplace category id
 
 cli ->> crewnet: Get existing users
 crewnet -->> cli: users
-cli ->> cli: Map CampOS user id's to CrewNet via <camposid>@campos.sl2022.dk mails<br>Verify all users exists, emit warnings for any missing
+cli ->> cli: Map CampOS user id's to CrewNet via campos member.profile crewnet_user<br>Verify all users exists, emit warnings for any missing
 alt (don't expect to do this currently)
 cli ->> crewnet: Get all workplaces to see which are associated with the category
 crewnet -->> cli: workplaces

@@ -2,9 +2,13 @@
 
 ###
 # Place a user into a application category.
-@workplace_category_id=17
+@workplace_category_id=27
 # Mads
-@user_id=23168
+# @user_id=23168
+
+# Mads bruger
+@user_id=28882
+
 POST https://{{$dotenv apidomain}}/v1/users/{{user_id}}/workplace_categories?event_id={{event_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 content-type: application/json
@@ -14,9 +18,12 @@ content-type: application/json
 }
 
 ###
-# Place a user into a application category.
-@workplace_category_id=17
+# Delete a user from a application category.
+# @workplace_category_id=17
 # Mads
-@user_id=23168
+# @user_id=23168
+# Mads bruger
+# @user_id=31316
+
 DELETE https://{{$dotenv apidomain}}/v1/users/{{user_id}}/workplace_categories/{{workplace_category_id}}?event_id={{event_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}

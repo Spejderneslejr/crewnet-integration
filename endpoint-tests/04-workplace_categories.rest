@@ -4,6 +4,12 @@ GET https://{{$dotenv apidomain}}/v1/workplace_categories HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
 
 ###
+# Get workplace category members
+@workplace_category_get_members_id=18
+GET https://{{$dotenv apidomain}}/v1/workplace_categories/{{workplace_category_get_members_id}}/users HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+
+###
 # Create a new workplace category to a license
 #
 # Minimal

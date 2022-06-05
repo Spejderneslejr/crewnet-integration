@@ -7,6 +7,13 @@ Authorization: Bearer {{$dotenv token}}
 content-type: application/json
 
 ###
+# Get all workplaces for the license
+#
+GET https://{{$dotenv apidomain}}/v1/workplaces/39/approaches HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+###
 # Create workplace
 #
 # Minimal

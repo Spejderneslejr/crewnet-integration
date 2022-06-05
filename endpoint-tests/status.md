@@ -54,6 +54,10 @@ Create a new workplace category to a license
 
 ✅️ `POST /v1/workplace_categories`
 
+Gets user in a workplace category
+
+✅️ `GET /v1/workplace_categories/workplace_category_id}/users`
+
 Update information to an existing workplace
 
 ✅️ `PUT /v1/workplace_categories/{workplace_category_id}`
