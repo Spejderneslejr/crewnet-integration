@@ -13,8 +13,7 @@ import { CrewnetService } from './crewnet.service';
       inject: [ConfigService],
     }),
   ],
-  controllers: [],
-  providers: [CrewnetService, Logger],
-  exports: [CrewnetService, Logger],
+  providers: [CrewnetService, Logger, ConfigService],
+  exports: [CrewnetService],
 })
 export class CrewnetModule {}
