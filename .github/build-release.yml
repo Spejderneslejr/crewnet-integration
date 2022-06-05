@@ -6,7 +6,11 @@
 name: Create and publish a Docker image
 
 on:
-  push
+  push:
+    # React on pushes of branches (Adding a pattern for the branches lets us
+    # ignore push of tags)
+    branches:
+      - '**'
 
 env:
   REGISTRY: ghcr.io
