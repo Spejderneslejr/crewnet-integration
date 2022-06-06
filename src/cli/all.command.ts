@@ -352,6 +352,7 @@ export class CamposSyncWorkplaceCategoriesAuto implements CommandRunner {
         true,
         options['dryRun'] === true,
       );
+      this.logger.log('Done');
     } catch (error) {
       console.error(error);
     }
