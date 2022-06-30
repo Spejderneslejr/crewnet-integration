@@ -1,2 +1,0 @@
-- authoritative sync - delete removed
-- 

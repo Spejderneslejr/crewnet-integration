@@ -31,3 +31,23 @@ content-type: application/json
 @delete_user_id=26741
 DELETE https://{{$dotenv apidomain}}/v1/users/{{delete_user_id}} HTTP/1.1
 Authorization: Bearer {{$dotenv token}}
+
+###
+# Update
+@update_user_id=26741
+PUT https://{{$dotenv apidomain}}/v1/users/{{update_user_id}} HTTP/1.1
+Authorization: Bearer {{$dotenv token}}
+content-type: application/json
+
+    {
+    "first_name": "Test",
+    "last_name": "Testesen",
+    "email": "test@example.com",
+    "birthday": "1981-01-01",
+    "address": null,
+    "zip": null,
+    "city": null,
+    "country": "DK",
+    "phone": "+4512345678",
+    "no_phone": false
+  }

@@ -16,6 +16,25 @@ export type User = {
   first_name: string;
   last_name: string;
   email: string;
+  address: string;
+  zip: string;
+  city: string;
+  country: string;
+  phone: string;
+  no_phone: boolean;
+};
+
+export type UserUpdate = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  birthday: string;
+  address: string;
+  zip: string;
+  city: string;
+  country: string;
+  phone: string;
+  no_phone: boolean;
 };
 
 export type WorkplaceCategory = {
@@ -46,14 +65,15 @@ export type SyncWorkplaceCategory = {
 
 @Injectable()
 export class CrewnetService {
-  apiBase = 'https://api.crewnet.dk/v1';
-
+  apiBase: string;
   constructor(
     private readonly logger: Logger,
     private httpService: HttpService,
     // TODO: Really should warp this to avoid configs directly.
     private configService: ConfigService,
   ) {
+    this.apiBase = 'https://' + this.configService.get('apidomain') + '/v1';
+
     this.httpService.axiosRef.interceptors.request.use((request) => {
       // this.logger.debug('Starting Request', request);
       return request;
@@ -75,9 +95,7 @@ export class CrewnetService {
     // Go fetch the list of users.
     this.logger.debug('Fetching user list');
     // Need a cleaner way of getting to event_id.
-    const users = await this.get<Array<User>>('users', {
-      event_id: this.configService.get('event_id'),
-    });
+    const users = await this.usersGet();
 
     const matcher = /^(?<camposId>\d)+@crewnet.sl2022.dk$/;
     this.campOSUserMap = users.reduce<typeof this.campOSUserMap>(
@@ -112,6 +130,26 @@ export class CrewnetService {
 
   async workplacesGet(event_id: string): Promise<Array<Workplace>> {
     return this.get<Array<Workplace>>('workplaces', { event_id });
+  }
+
+  async usersGet(): Promise<Array<User>> {
+    const users = await this.get<Array<User>>('users', {
+      event_id: this.configService.get('event_id'),
+    });
+
+    return users;
+  }
+
+  async userUpdate(userId: number, userData: UserUpdate): Promise<void> {
+    this.logger.debug(`${this.apiBase}/users/${userId}`);
+    this.logger.debug({ userData });
+    const data = await lastValueFrom(
+      this.httpService.put(`${this.apiBase}/users/${userId}`, userData),
+    );
+
+    this.logger.debug({ putData: data.data });
+
+    return;
   }
 
   async userCreate(_name: string): Promise<void> {
@@ -210,6 +248,18 @@ export class CrewnetService {
       this.httpService.delete(`${this.apiBase}/workplace_categories/${id}`),
     );
     console.log(data.data);
+
+    return;
+  }
+
+  async userDelete(id: number): Promise<void> {
+    const response = await lastValueFrom(
+      this.httpService.delete(`${this.apiBase}/users/${id}`),
+    );
+    this.logger.log({
+      status: response.status,
+      statusText: response.statusText,
+    });
 
     return;
   }
@@ -359,6 +409,7 @@ export class CrewnetService {
       workplaceName: string;
       workplaceCategoryName: string;
     }>,
+    dryRun: boolean,
   ) {
     // TODO: Need a cleaner way of getting to event_id.
     const event_id = this.configService.get('event_id');
@@ -400,10 +451,153 @@ export class CrewnetService {
       }
 
       // Category exists and the workplace does not - create.
-      await this.workplaceCreate(
-        workplace.workplaceName,
-        existingCategoryByNames[workplace.workplaceCategoryName].id,
+      this.logger.log(
+        'Creating workplace ' +
+          workplace.workplaceName +
+          ' with workplace category ' +
+          workplace.workplaceCategoryName +
+          '(' +
+          existingCategoryByNames[workplace.workplaceCategoryName].id +
+          ')',
       );
+      if (dryRun) {
+        this.logger.log('(dry run)');
+      } else {
+        await this.workplaceCreate(
+          workplace.workplaceName,
+          existingCategoryByNames[workplace.workplaceCategoryName].id,
+        );
+      }
+    }
+  }
+
+  async syncMemberData(
+    camposUsers: {
+      crewnetUserId: number;
+      mobileNumber: string | null;
+      email: string;
+      birthdate: string;
+    }[],
+    dryRun: boolean,
+  ) {
+    this.logger.log('Considering CampOS ' + camposUsers.length + ' to sync');
+    // Fetch the current list of users.
+    const crewnetUsers = await this.usersGet();
+
+    this.logger.log('Got ' + crewnetUsers.length + ' existing Crewnet users');
+
+    const currentUsersMap = crewnetUsers.reduce<typeof this.campOSUserMap>(
+      (acc, crewnetUser) => {
+        acc[crewnetUser.id] = crewnetUser;
+        return acc;
+      },
+      {},
+    );
+
+    let updateCount = 0;
+    const emailSyncList = [28846];
+    for await (const camposUser of camposUsers) {
+      if (!currentUsersMap.hasOwnProperty(camposUser.crewnetUserId)) {
+        this.logger.log(
+          'Skipping user ' +
+            camposUser.crewnetUserId +
+            ' that is present in CampOS but not CrewNet',
+        );
+        continue;
+      }
+
+      // Drop id from currentUser to get putUser.
+      const currentCrewnetUser = currentUsersMap[camposUser.crewnetUserId];
+
+      const updatedCrewnetUser: UserUpdate = {
+        first_name: currentCrewnetUser.first_name,
+        last_name: currentCrewnetUser.last_name,
+        email: currentCrewnetUser.email,
+        // We add this in by hand as it does not existing in the current user object.
+        // This means that we will currently not update on a an updated birthdate.
+
+        birthday: camposUser.birthdate,
+        address: currentCrewnetUser.address,
+        zip: currentCrewnetUser.zip,
+        city: currentCrewnetUser.city,
+        country: currentCrewnetUser.country,
+        phone: currentCrewnetUser.phone,
+        no_phone: currentCrewnetUser.no_phone,
+      };
+
+      const changed: string[] = [];
+
+      // We're not syncing emails for now, but add the email if the user is on the list.
+      if (emailSyncList.includes(currentCrewnetUser.id)) {
+        if (updatedCrewnetUser.email != camposUser.email) {
+          updatedCrewnetUser.email = camposUser.email;
+          changed.push('email');
+        }
+      }
+
+      if (
+        updatedCrewnetUser.phone !== camposUser.mobileNumber &&
+        !(camposUser.mobileNumber === null && updatedCrewnetUser.phone === '')
+      ) {
+        if (camposUser.mobileNumber) {
+          updatedCrewnetUser.phone = camposUser.mobileNumber;
+          if (updatedCrewnetUser.no_phone) {
+            updatedCrewnetUser.no_phone = false;
+          }
+        } else {
+          updatedCrewnetUser.phone = '';
+          if (!updatedCrewnetUser.no_phone) {
+            updatedCrewnetUser.no_phone = true;
+          }
+        }
+        changed.push('phone');
+
+        changed.push('no_phone');
+      }
+
+      if (updatedCrewnetUser.birthday != camposUser.birthdate) {
+        updatedCrewnetUser.birthday = camposUser.birthdate;
+        changed.push('birthday');
+      }
+
+      if (changed.length !== 0) {
+        updateCount++;
+        this.logger.log(
+          'User ' +
+            currentCrewnetUser.id +
+            ' data change detected: ' +
+            (dryRun ? '(dry-run)' : ''),
+        );
+        this.logger.debug({ camposUser });
+        this.logger.debug({ currentCrewnetUser });
+        this.logger.debug({ updatedCrewnetUser });
+
+        this.logDiff(currentCrewnetUser, updatedCrewnetUser, changed);
+        if (!dryRun) {
+          try {
+            await this.userUpdate(currentCrewnetUser.id, updatedCrewnetUser);
+          } catch (error) {
+            this.logger.error(
+              'Error while updating user ' + currentCrewnetUser.id,
+              error,
+            );
+            this.logger.error({ error });
+          }
+        }
+      } else {
+        this.logger.debug(
+          'User ' + currentCrewnetUser.id + ' is already in sync',
+        );
+      }
+    }
+    this.logger.log(
+      'Updated ' + updateCount + ' users' + (dryRun ? ' (dry-run)' : ''),
+    );
+  }
+
+  logDiff(a: object, b: object, changed: string[]) {
+    for (const property of changed) {
+      this.logger.log(`  - ${property}: ${a[property]} => ${b[property]}`);
     }
   }
 }
