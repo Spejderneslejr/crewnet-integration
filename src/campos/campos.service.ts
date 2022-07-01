@@ -325,6 +325,68 @@ export class CamposService {
     return returnMembers;
   }
 
+  async memberByFullName(fullName: string) {
+    // The typecast here is a bit strange. executeKw declares it returns a string,
+    // but it actually returns an object.
+    const members = (await this.executeKw('member.profile', 'search_read', [], {
+      domain: [
+        ['organization_id', '=', 2],
+        ['state', '=', 'active'],
+        ['name', '=', fullName],
+      ],
+      fields: ['member_number', 'image', 'partner_id', 'name'],
+      context: { show_org_path: true, lang: 'da_DK' },
+    })) as unknown as Array<{
+      member_number: string;
+      image: string;
+      partner_id: any[];
+      name: string;
+    }>;
+
+    if (members.length === 0) {
+      throw new Error('Could not find member ' + fullName);
+    }
+    if (members.length > 1) {
+      throw new Error('Got more than one member named  ' + fullName);
+    }
+
+    const member = members[0];
+    return {
+      member_number: member.member_number,
+      image: member.image,
+      // hard assumption from test-queries
+      partner_id: member.partner_id[0] as number,
+      name: member.name,
+    };
+  }
+
+  async getMemberCompetences(partnerID: number) {
+    // The typecast here is a bit strange. executeKw declares it returns a string,
+    // but it actually returns an object.
+    const members = (await this.executeKw('hr.competence', 'search_read', [], {
+      domain: [
+        ['organization_id', '=', 2],
+        ['state', '=', 'active'],
+        ['partner_id', '=', partnerID],
+      ],
+      fields: [
+        'display_name',
+        'hr_competence_group_id',
+        'hr_competence_type_id',
+        'partner_id',
+      ],
+      context: { show_org_path: true, lang: 'da_DK' },
+    })) as unknown as Array<{
+      display_name: string;
+      hr_competence_group_id: string;
+      hr_competence_type_id: string;
+      partner_id: string;
+    }>;
+
+    this.logger.log({ members });
+    return;
+  }
+
   async memberWithCrewnetIdData() {
     // The typecast here is a bit strange. executeKw declares it returns a string,
     // but it actually returns an object.
@@ -493,8 +555,6 @@ export class CamposService {
     fparams.push(paramsByPosition);
     fparams.push(paramsByKeyword);
 
-    //this.logger.debug({ fparams });
-
     return new Promise((resolve, reject) => {
       client.methodCall('execute_kw', fparams, function (error, value) {
         if (error) {
@@ -503,12 +563,5 @@ export class CamposService {
         return resolve(value);
       });
     });
-  }
-
-  async sqlExport(_name: string): Promise<string> {
-    // The typecast here is a bit strange. executeKw declares it returns a string,
-    // but it actually returns an object.
-
-    return 'moo';
   }
 }

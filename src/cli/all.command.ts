@@ -9,7 +9,7 @@ import { XslxService } from '../crewnet/xslx.service';
 import { CSVService } from '../csv.service';
 import { ExcelJSService } from '../exceljs.service';
 import * as fs from 'fs';
-import { runInThisContext } from 'vm';
+import { CliUtilsService } from '../cliutils';
 
 @Command({
   name: 'event:getAll',
@@ -472,6 +472,97 @@ export class ConvertCsvImages implements CommandRunner {
       this.logger.log('Done');
     } catch (error) {
       console.error({ error });
+    }
+
+    return;
+  }
+}
+
+@Command({
+  name: 'general:generateLicenseSheet',
+  arguments: '<path> <output>',
+})
+export class GenerateLicenseSheet implements CommandRunner {
+  constructor(
+    private readonly logger: Logger,
+    private excel: ExcelJSService,
+    private campos: CamposService,
+    private utils: CliUtilsService,
+  ) {}
+
+  async run(inputs: string[], _options: Record<string, any>): Promise<void> {
+    const path = inputs[0];
+    const outputDir = inputs[1];
+    const outputSheetPath = `${outputDir}/members.xlsx`;
+    try {
+      // Get the users we're going to fetch.
+      // TODO - switch to medlemsnummer.
+      const inputData = await this.excel.getLicenseInput(path);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir);
+      }
+
+      type sheetRow = {
+        member_number: string;
+        inputName: string;
+        camposName: string;
+        area: string;
+        department: string;
+        licenses: string;
+      };
+
+      const members: Array<sheetRow> = [];
+      const outputMemberData = [];
+      // Fetch more data (and the image) for each.
+      for (const inputMemberData of inputData) {
+        const memberData = await this.campos.memberByFullName(
+          inputMemberData.name,
+        );
+
+        await this.campos.getMemberCompetences(memberData.partner_id);
+
+        members.push({
+          member_number: memberData.member_number,
+          inputName: inputMemberData.name,
+          camposName: memberData.name,
+          area: inputMemberData.area,
+          department: inputMemberData.department,
+          licenses: '',
+        });
+
+        // Write the image.
+        try {
+          await this.utils.writeImage(
+            memberData.image,
+            outputDir,
+            memberData.member_number,
+          );
+        } catch (e) {
+          this.logger.error('Unable to write image for ' + memberData.name);
+        }
+
+        // Generate output sheet.
+        outputMemberData.push({
+          memberNumber: memberData.member_number,
+          inputName: inputMemberData.name,
+          camposName: memberData.name,
+          area: inputMemberData.area,
+          department: inputMemberData.department,
+          licenses: '',
+        });
+      }
+
+      const columns = [
+        { header: 'Medlemsnummer', key: 'memberNumber', width: 10 },
+        { header: 'Navn', key: 'inputName', width: 15 },
+        { header: 'Fuldt navn', key: 'camposName', width: 15 },
+        { header: 'Område', key: 'area', width: 10 },
+        { header: 'Udvalg', key: 'department', width: 10 },
+        { header: 'Kørekort kategorier', key: 'licenses', width: 32 },
+      ];
+      await this.excel.writeObject(columns, outputMemberData, outputSheetPath);
+    } catch (error) {
+      this.logger.error(error, error.stack);
     }
 
     return;

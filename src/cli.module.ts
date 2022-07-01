@@ -18,6 +18,7 @@ import {
   WorkplacesGetCommand,
   CrewnetNonCamposUsers,
   CrewnetBulkDelete,
+  GenerateLicenseSheet,
 } from './cli/all.command';
 import { CrewnetModule } from './crewnet/crewnet.module';
 import { ConfigModule } from '@nestjs/config';
@@ -25,6 +26,7 @@ import { CamposModule } from './campos/campos.module';
 import { XslxService } from './crewnet/xslx.service';
 import { ExcelJSService } from './exceljs.service';
 import { CSVService } from './csv.service';
+import { CliUtilsService } from './cliutils';
 
 @Module({
   imports: [
@@ -48,7 +50,9 @@ import { CSVService } from './csv.service';
     CrewnetSyncMemberContactInfo,
     CSVService,
     EventGetAll,
+    CliUtilsService,
     ExcelJSService,
+    GenerateLicenseSheet,
     GroupCreateCommand,
     Logger,
     UserCreateCommand,
