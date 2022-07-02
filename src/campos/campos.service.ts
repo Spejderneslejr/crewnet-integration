@@ -328,20 +328,7 @@ export class CamposService {
   async memberByFullName(fullName: string) {
     // The typecast here is a bit strange. executeKw declares it returns a string,
     // but it actually returns an object.
-    const members = (await this.executeKw('member.profile', 'search_read', [], {
-      domain: [
-        ['organization_id', '=', 2],
-        ['state', '=', 'active'],
-        ['name', '=', fullName],
-      ],
-      fields: ['member_number', 'image', 'partner_id', 'name'],
-      context: { show_org_path: true, lang: 'da_DK' },
-    })) as unknown as Array<{
-      member_number: string;
-      image: string;
-      partner_id: any[];
-      name: string;
-    }>;
+    const members = await this.memberByFilter([['name', '=', fullName]]);
 
     if (members.length === 0) {
       throw new Error('Could not find member ' + fullName);
@@ -360,13 +347,57 @@ export class CamposService {
     };
   }
 
+  async memberByMemberNumber(fullName: string) {
+    // The typecast here is a bit strange. executeKw declares it returns a string,
+    // but it actually returns an object.
+    const members = await this.memberByFilter([
+      ['member_number', '=', fullName],
+    ]);
+    if (members.length === 0) {
+      throw new Error('Could not find member ' + fullName);
+    }
+    if (members.length > 1) {
+      throw new Error('Got more than one member named  ' + fullName);
+    }
+
+    const member = members[0];
+    return {
+      member_number: member.member_number,
+      image: member.image,
+      // hard assumption from test-queries
+      partner_id: member.partner_id[0] as number,
+      name: member.name,
+    };
+  }
+
+  async memberByFilter(filter: [string, string, string][]) {
+    // The typecast here is a bit strange. executeKw declares it returns a string,
+    // but it actually returns an object.
+    const members = (await this.executeKw('member.profile', 'search_read', [], {
+      domain: [
+        ['organization_id', '=', 2],
+        ['state', '=', 'active'],
+        ...filter,
+      ],
+      fields: ['member_number', 'image', 'partner_id', 'name'],
+      context: { show_org_path: true, lang: 'da_DK' },
+    })) as unknown as Array<{
+      member_number: string;
+      image: string;
+      partner_id: any[];
+      name: string;
+    }>;
+
+    return members;
+  }
+
   async getMemberCompetences(partnerID: number) {
     // The typecast here is a bit strange. executeKw declares it returns a string,
     // but it actually returns an object.
     const members = (await this.executeKw('hr.competence', 'search_read', [], {
       domain: [
-        ['organization_id', '=', 2],
-        ['state', '=', 'active'],
+        // TODO
+        // ['state', '=', 'active'],
         ['partner_id', '=', partnerID],
       ],
       fields: [
@@ -378,13 +409,25 @@ export class CamposService {
       context: { show_org_path: true, lang: 'da_DK' },
     })) as unknown as Array<{
       display_name: string;
-      hr_competence_group_id: string;
-      hr_competence_type_id: string;
-      partner_id: string;
+      hr_competence_group_id: any[];
+      hr_competence_type_id: any[];
+      partner_id: any[];
     }>;
 
-    this.logger.log({ members });
-    return;
+    const returnMembers = members.map((member) => {
+      // TODO - only map data that is somewhat clean, log if it is not.
+      return {
+        // hard assumptions from test-queries
+        partner_id: member.partner_id[0] as number,
+        competence_group_id: member.hr_competence_group_id[0],
+        competence_group_name: member.hr_competence_group_id[1],
+        competence_type_id: member.hr_competence_type_id[0],
+        competence_type_name: member.hr_competence_type_id[1],
+      };
+    });
+    this.logger.debug({ returnMembers });
+
+    return returnMembers;
   }
 
   async memberWithCrewnetIdData() {

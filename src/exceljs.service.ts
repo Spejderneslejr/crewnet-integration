@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Workbook } from 'exceljs';
+import { Column, Workbook } from 'exceljs';
 import { toNamespacedPath } from 'path';
 @Injectable()
 export class ExcelJSService {
@@ -98,7 +98,7 @@ export class ExcelJSService {
   }
 
   async writeObject(
-    columns: Array<{ header: string; key: string; width: number }>,
+    columns: Partial<Column>[],
     rows: Array<object>,
     path: string,
   ) {

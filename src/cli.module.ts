@@ -27,6 +27,7 @@ import { XslxService } from './crewnet/xslx.service';
 import { ExcelJSService } from './exceljs.service';
 import { CSVService } from './csv.service';
 import { CliUtilsService } from './cliutils';
+import { JimpService } from './crewnet/jimp.service';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { CliUtilsService } from './cliutils';
     CrewnetSyncMemberContactInfo,
     CSVService,
     EventGetAll,
+    JimpService,
     CliUtilsService,
     ExcelJSService,
     GenerateLicenseSheet,

@@ -10,6 +10,8 @@ import { CSVService } from '../csv.service';
 import { ExcelJSService } from '../exceljs.service';
 import * as fs from 'fs';
 import { CliUtilsService } from '../cliutils';
+import { DateTime } from 'luxon';
+import * as Jimp from 'jimp';
 
 @Command({
   name: 'event:getAll',
@@ -480,7 +482,7 @@ export class ConvertCsvImages implements CommandRunner {
 
 @Command({
   name: 'general:generateLicenseSheet',
-  arguments: '<path> <output>',
+  arguments: '<path>',
 })
 export class GenerateLicenseSheet implements CommandRunner {
   constructor(
@@ -490,10 +492,15 @@ export class GenerateLicenseSheet implements CommandRunner {
     private utils: CliUtilsService,
   ) {}
 
+  MIN_IMAGE_SIZE = 201 * 201;
+
   async run(inputs: string[], _options: Record<string, any>): Promise<void> {
     const path = inputs[0];
-    const outputDir = inputs[1];
-    const outputSheetPath = `${outputDir}/members.xlsx`;
+    const runBasename = DateTime.now().toFormat('yyyyMMddHHmmss');
+    const outputDir = `output/license-export-${runBasename}`;
+    const outputSheetPath = `${outputDir}/license-export-${runBasename}.xlsx`;
+
+    const DRIVING_LICENSE_GROUP_ID = 59;
     try {
       // Get the users we're going to fetch.
       // TODO - switch to medlemsnummer.
@@ -502,64 +509,111 @@ export class GenerateLicenseSheet implements CommandRunner {
         fs.mkdirSync(outputDir);
       }
 
+      type ImageStatus = 'OK' | 'MANGLER' | 'LILLE BILLEDE';
       type sheetRow = {
-        member_number: string;
+        memberNumber: string;
         inputName: string;
         camposName: string;
         area: string;
         department: string;
         licenses: string;
+        imageStatus: ImageStatus;
       };
 
-      const members: Array<sheetRow> = [];
-      const outputMemberData = [];
+      const outputMemberData: Array<sheetRow> = [];
       // Fetch more data (and the image) for each.
       for (const inputMemberData of inputData) {
-        const memberData = await this.campos.memberByFullName(
-          inputMemberData.name,
-        );
-
-        await this.campos.getMemberCompetences(memberData.partner_id);
-
-        members.push({
-          member_number: memberData.member_number,
-          inputName: inputMemberData.name,
-          camposName: memberData.name,
-          area: inputMemberData.area,
-          department: inputMemberData.department,
-          licenses: '',
-        });
-
-        // Write the image.
+        let memberData;
         try {
-          await this.utils.writeImage(
-            memberData.image,
-            outputDir,
-            memberData.member_number,
+          memberData = await this.campos.memberByMemberNumber(
+            inputMemberData.memberNumber,
           );
-        } catch (e) {
-          this.logger.error('Unable to write image for ' + memberData.name);
+        } catch (error) {
+          continue;
         }
 
-        // Generate output sheet.
+        const competences = await this.campos.getMemberCompetences(
+          memberData.partner_id,
+        );
+
+        const drivingLicense = competences
+          .filter(
+            (competence) =>
+              competence.competence_group_id === DRIVING_LICENSE_GROUP_ID,
+          )
+          .map((drivingLicense) => drivingLicense.competence_type_name)
+          .join('\r\n');
+
+        let imageStatus: ImageStatus = 'OK';
+        // Write the image.
+        if (!memberData.image || memberData.image.length === 0) {
+          imageStatus = 'MANGLER';
+          fs.closeSync(
+            fs.openSync(
+              `${outputDir}/${memberData.member_number}_IMAGE_MISSING`,
+              'w',
+            ),
+          );
+        } else {
+          try {
+            const buffer = Buffer.from(memberData.image, 'base64');
+            const image = await Jimp.read(buffer);
+
+            if (image.getWidth() > image.getHeight()) {
+              // We assume we can fix the image by rotating it clockwise.
+              // this.logger.log('Rotating: ' + memberData.member_number);
+              // await image.rotate(90 * 3);
+            }
+            // (image.bitmap as any).exifBuffer = undefined;
+
+            // Detect to small images.
+            if (image.getWidth() * image.getHeight() < this.MIN_IMAGE_SIZE) {
+              imageStatus = 'LILLE BILLEDE';
+            }
+
+            memberData.image = (
+              await image.getBufferAsync(Jimp.MIME_JPEG)
+            ).toString('base64');
+
+            await this.utils.writeImage(
+              memberData.image,
+              outputDir,
+              memberData.member_number,
+            );
+          } catch (e) {
+            this.logger.error(
+              `Unable to write image for ${memberData.name}: ${e.message}`,
+              e.stack,
+            );
+          }
+        }
+
         outputMemberData.push({
           memberNumber: memberData.member_number,
           inputName: inputMemberData.name,
           camposName: memberData.name,
           area: inputMemberData.area,
           department: inputMemberData.department,
-          licenses: '',
+          licenses: drivingLicense,
+          imageStatus,
         });
       }
 
       const columns = [
-        { header: 'Medlemsnummer', key: 'memberNumber', width: 10 },
-        { header: 'Navn', key: 'inputName', width: 15 },
-        { header: 'Fuldt navn', key: 'camposName', width: 15 },
+        { header: 'Medlemsnummer', key: 'memberNumber', width: 15 },
+        { header: 'Navn', key: 'inputName', width: 30 },
+        { header: 'Fuldt navn', key: 'camposName', width: 30 },
         { header: 'Område', key: 'area', width: 10 },
-        { header: 'Udvalg', key: 'department', width: 10 },
-        { header: 'Kørekort kategorier', key: 'licenses', width: 32 },
+        { header: 'Udvalg', key: 'department', width: 30 },
+        {
+          header: 'Kørekort kategorier',
+          key: 'licenses',
+          width: 25,
+          style: { alignment: { wrapText: true } },
+        },
+        { header: 'Billede', key: 'imageStatus', width: 15 },
       ];
+      this.logger.log(`Writing ${outputSheetPath}`);
       await this.excel.writeObject(columns, outputMemberData, outputSheetPath);
     } catch (error) {
       this.logger.error(error, error.stack);
