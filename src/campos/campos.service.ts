@@ -253,48 +253,6 @@ const countryCodeMap = {
 export class CamposService {
   constructor(private config: ApiconfigService, private logger: Logger) {}
 
-  obj = {
-    jsonrpc: '2.0',
-    method: 'call',
-    params: {
-      model: 'member.profile',
-      domain: [
-        ['organization_id', '=', 2],
-        ['partner_id.function_ids.organization_id', 'child_of', 381],
-        ['state', '=', 'active'],
-      ],
-      fields: [
-        'member_number',
-        'name',
-        'complete_address',
-        'birthdate_date',
-        'age',
-        'phone_combo',
-        'email',
-        'organization_id',
-        'active_functions_in_profile',
-        'state',
-      ],
-      limit: 80,
-      sort: 'state ASC, name ASC',
-      context: {
-        uid: 1755,
-        lang: 'da_DK',
-        age: 0,
-        tz: 'Europe/Copenhagen',
-        team_activities: false,
-        active_id: 381,
-        default_organization_id: 381,
-        active_model: 'member.organization',
-        active_ids: [381],
-        search_default_state: 'active',
-        limit_org_ids: [],
-        search_disable_custom_filters: true,
-      },
-    },
-    id: 76376773,
-  };
-
   async membersByUnit(unitId: number) {
     // The typecast here is a bit strange. executeKw declares it returns a string,
     // but it actually returns an object.
@@ -347,7 +305,13 @@ export class CamposService {
     };
   }
 
-  async memberByMemberNumber(fullName: string) {
+  async memberByMemberNumber(fullName: string): Promise<{
+    member_number: string;
+    image: string;
+    partner_id: number;
+    name: string;
+    email: string;
+  }> {
     // The typecast here is a bit strange. executeKw declares it returns a string,
     // but it actually returns an object.
     const members = await this.memberByFilter([
@@ -367,6 +331,7 @@ export class CamposService {
       // hard assumption from test-queries
       partner_id: member.partner_id[0] as number,
       name: member.name,
+      email: member.email,
     };
   }
 
@@ -379,13 +344,14 @@ export class CamposService {
         ['state', '=', 'active'],
         ...filter,
       ],
-      fields: ['member_number', 'image', 'partner_id', 'name'],
+      fields: ['member_number', 'partner_id', 'name', 'image', 'email'],
       context: { show_org_path: true, lang: 'da_DK' },
     })) as unknown as Array<{
       member_number: string;
       image: string;
       partner_id: any[];
       name: string;
+      email: string;
     }>;
 
     return members;
@@ -395,11 +361,7 @@ export class CamposService {
     // The typecast here is a bit strange. executeKw declares it returns a string,
     // but it actually returns an object.
     const members = (await this.executeKw('hr.competence', 'search_read', [], {
-      domain: [
-        // TODO
-        // ['state', '=', 'active'],
-        ['partner_id', '=', partnerID],
-      ],
+      domain: [['partner_id', '=', partnerID]],
       fields: [
         'display_name',
         'hr_competence_group_id',
@@ -470,6 +432,7 @@ export class CamposService {
           member.mobile,
           member.country_id,
           member.crewnet_user,
+          member.member_number,
         ),
         country_id: member.country_id,
         birthdate_date: member.birthdate_date,
@@ -488,6 +451,7 @@ export class CamposService {
     phoneNumber: string,
     country_id: [number, string],
     crewnet_user: number,
+    member_number: string,
   ): string {
     if (!phoneNumber) {
       return '';
@@ -531,7 +495,7 @@ export class CamposService {
     }
 
     this.logger.warn(
-      `Could not match/clean number for ${crewnet_user}: Phone:"${phoneNumber}" Country: ${country_id[0]} / ${country_id[1]}`,
+      `Could not match/clean number for ${crewnet_user} / ${member_number}: Phone:"${phoneNumber}" Country: ${country_id[0]} / ${country_id[1]}`,
     );
     return null;
   }
