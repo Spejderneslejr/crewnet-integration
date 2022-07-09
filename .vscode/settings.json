@@ -6,8 +6,13 @@
     "crewnet",
     "eventid",
     "exceljs",
+    "exif",
+    "Krancertifikat",
+    "Liftcertifikat",
     "medlemsnummer",
     "spejderneslejr",
+    "Teleskoplæsser",
+    "Truckcertifikat",
     "Workplans"
   ],
   "rest-client.previewOption": "full"
