@@ -1,6 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Column, Workbook } from 'exceljs';
-import { toNamespacedPath } from 'path';
+
+export type LicenseImageStatus = 'OK' | 'MANGLER' | 'LILLE BILLEDE';
+
+export type MemberLicenseData = {
+  memberNumber: string;
+  inputName: string;
+  camposName: string;
+  area: string;
+  department: string;
+  licenses: string[];
+  imageStatus: LicenseImageStatus;
+};
+
 @Injectable()
 export class ExcelJSService {
   constructor(private readonly logger: Logger) {}
@@ -92,6 +104,70 @@ export class ExcelJSService {
         name: row.getCell(2).value?.toString().trim(),
         area: row.getCell(3).value?.toString().trim(),
         department: row.getCell(4).value?.toString().trim(),
+      });
+    });
+    return inputData;
+  }
+
+  async getFullLicenseInput(path: string) {
+    const workbook = new Workbook();
+    await workbook.xlsx.readFile(path);
+    const worksheet = workbook.worksheets[0];
+    const headerRow = worksheet.getRow(1);
+    // verify headers.
+    const expectedFields = [
+      'Medlemsnummer',
+      'Navn',
+      'Fuldt navn',
+      'Område',
+      'Udvalg',
+      'Kørekort kategorier',
+      'Billede',
+    ];
+
+    const indexColumn = 1;
+    // Fields are 1-indexed
+    for (let i = 1; i < expectedFields.length + 1; i++) {
+      const actualField = headerRow.getCell(i).toString();
+      const expectedField = expectedFields[i - 1];
+
+      if (actualField !== expectedField) {
+        throw new Error(
+          `Expected field ${expectedField} at index ${i} but found ${actualField}`,
+        );
+      }
+    }
+
+    const inputData: MemberLicenseData[] = [];
+
+    worksheet.eachRow(function (row, rowNumber) {
+      // Skip the header row.
+      if (rowNumber == 1) {
+        return;
+      }
+
+      // Skip rows with missing index.
+      if (!row.getCell(indexColumn).value) {
+        return;
+      }
+
+      // TODO, this could be a bit more clever, but will do for now. Keep
+      // it in sync with expectedFields
+      inputData.push({
+        memberNumber: row.getCell(1).value?.toString().trim(),
+        inputName: row.getCell(2).value?.toString().trim(),
+        camposName: row.getCell(3).value?.toString().trim(),
+        area: row.getCell(4).value?.toString().trim(),
+        department: row.getCell(5).value?.toString().trim(),
+        licenses: row
+          .getCell(6)
+          .value?.toString()
+          .split('\n')
+          .filter((e) => e !== ''),
+        imageStatus: row
+          .getCell(7)
+          .value?.toString()
+          .trim() as LicenseImageStatus,
       });
     });
     return inputData;

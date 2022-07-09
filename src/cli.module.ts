@@ -19,6 +19,7 @@ import {
   CrewnetNonCamposUsers,
   CrewnetBulkDelete,
   GenerateLicenseSheet,
+  GenerateLicensePdf,
 } from './cli/all.command';
 import { CrewnetModule } from './crewnet/crewnet.module';
 import { ConfigModule } from '@nestjs/config';
@@ -28,6 +29,7 @@ import { ExcelJSService } from './exceljs.service';
 import { CSVService } from './csv.service';
 import { CliUtilsService } from './cliutils';
 import { JimpService } from './crewnet/jimp.service';
+import { PDFService } from './crewnet/pdf.service';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { JimpService } from './crewnet/jimp.service';
   ],
 
   providers: [
+    GenerateLicensePdf,
+    PDFService,
     CamposMembersInUnit,
     CamposSyncWorkplaceCategoriesAuto,
     CamposSyncWorkplaceCategoryByUnit,

@@ -7,11 +7,17 @@ import {
 } from '../crewnet/crewnet.service';
 import { XslxService } from '../crewnet/xslx.service';
 import { CSVService } from '../csv.service';
-import { ExcelJSService } from '../exceljs.service';
+import {
+  ExcelJSService,
+  LicenseImageStatus,
+  MemberLicenseData,
+} from '../exceljs.service';
 import * as fs from 'fs';
 import { CliUtilsService } from '../cliutils';
 import { DateTime } from 'luxon';
 import * as Jimp from 'jimp';
+import { PDFService } from '../crewnet/pdf.service';
+import sanitize = require('sanitize-filename');
 
 @Command({
   name: 'event:getAll',
@@ -503,21 +509,20 @@ export class GenerateLicenseSheet implements CommandRunner {
     const DRIVING_LICENSE_GROUP_ID = 59;
     try {
       // Get the users we're going to fetch.
-      // TODO - switch to medlemsnummer.
       const inputData = await this.excel.getLicenseInput(path);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir);
       }
 
-      type ImageStatus = 'OK' | 'MANGLER' | 'LILLE BILLEDE';
       type sheetRow = {
         memberNumber: string;
         inputName: string;
+        email: string;
         camposName: string;
         area: string;
         department: string;
         licenses: string;
-        imageStatus: ImageStatus;
+        imageStatus: LicenseImageStatus;
       };
 
       const outputMemberData: Array<sheetRow> = [];
@@ -544,7 +549,7 @@ export class GenerateLicenseSheet implements CommandRunner {
           .map((drivingLicense) => drivingLicense.competence_type_name)
           .join('\r\n');
 
-        let imageStatus: ImageStatus = 'OK';
+        let imageStatus: LicenseImageStatus = 'OK';
         // Write the image.
         if (!memberData.image || memberData.image.length === 0) {
           imageStatus = 'MANGLER';
@@ -588,10 +593,12 @@ export class GenerateLicenseSheet implements CommandRunner {
           }
         }
 
+        this.logger.log('Processed ' + memberData.member_number);
         outputMemberData.push({
           memberNumber: memberData.member_number,
           inputName: inputMemberData.name,
           camposName: memberData.name,
+          email: memberData.email,
           area: inputMemberData.area,
           department: inputMemberData.department,
           licenses: drivingLicense,
@@ -603,6 +610,7 @@ export class GenerateLicenseSheet implements CommandRunner {
         { header: 'Medlemsnummer', key: 'memberNumber', width: 15 },
         { header: 'Navn', key: 'inputName', width: 30 },
         { header: 'Fuldt navn', key: 'camposName', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
         { header: 'Område', key: 'area', width: 10 },
         { header: 'Udvalg', key: 'department', width: 30 },
         {
@@ -615,6 +623,142 @@ export class GenerateLicenseSheet implements CommandRunner {
       ];
       this.logger.log(`Writing ${outputSheetPath}`);
       await this.excel.writeObject(columns, outputMemberData, outputSheetPath);
+    } catch (error) {
+      this.logger.error(error, error.stack);
+    }
+
+    return;
+  }
+}
+
+@Command({
+  name: 'general:generateLicensePdf',
+  arguments: '<template> <inputfile> <imgpath>',
+})
+export class GenerateLicensePdf implements CommandRunner {
+  constructor(
+    private readonly logger: Logger,
+    private excel: ExcelJSService,
+    private utils: CliUtilsService,
+    private pdf: PDFService,
+  ) {}
+
+  licenseTypeMap = {
+    'Kørekort A1, A2': { cat: '', other: null, ignore: true },
+    'Kørekort AM': { cat: '', other: null, ignore: true },
+    'Kørekort B': { cat: 'cat_b', other: null, ignore: false },
+    'Kørekort BE': { cat: 'cat_be', other: null, ignore: false },
+    'Kørekort C': { cat: 'cat_c', other: null, ignore: false },
+    'Kørekort C1': { cat: 'cat_c', other: null, ignore: false },
+    'Kørekort CE': { cat: 'cat_ce', other: null, ignore: false },
+    'Kørekort D1': { cat: 'cat_d', other: null, ignore: false },
+    'Kørekort DE': { cat: 'cat_de', other: null, ignore: false },
+    'Kørekort LK': { cat: '', other: null, ignore: false },
+    'EU bevis til bus': { cat: null, other: 'Bus', ignore: false },
+    'EU bevis til lastbil': { cat: null, other: 'Lastbil', ignore: false },
+    Krancertifikat: { cat: null, other: 'Kran', ignore: false },
+    Liftcertifikat: { cat: null, other: 'Lift', ignore: false },
+    'Teleskoplæsser certifikat': {
+      cat: null,
+      other: 'Teleskop',
+      ignore: false,
+    },
+    'Truckcertifikat A': { cat: null, other: 'Truck A', ignore: false },
+    'Truckcertifikat B': { cat: null, other: 'Truck B', ignore: false },
+  };
+
+  mapLicenses(memberData: MemberLicenseData): {
+    other: string;
+    cat_b: boolean;
+    cat_c: boolean;
+    cat_d: boolean;
+    cat_be: boolean;
+    cat_ce: boolean;
+    cat_de: boolean;
+  } {
+    const returnData = {
+      other: '',
+      cat_b: true,
+      cat_c: false,
+      cat_d: true,
+      cat_be: false,
+      cat_ce: false,
+      cat_de: true,
+    };
+
+    const other = [];
+    for (const license of memberData.licenses) {
+      const typeData = this.licenseTypeMap[license];
+      if (typeData.ignore) {
+        continue;
+      }
+
+      if (typeData.other !== null) {
+        other.push(typeData.other);
+      }
+
+      if (typeData.cat !== null) {
+        returnData[typeData.cat] = true;
+      }
+    }
+    if (other.length > 0) {
+      returnData.other = other.join(', ');
+    }
+    return returnData;
+  }
+
+  async run(inputs: string[], _options: Record<string, any>): Promise<void> {
+    const pdfTemplate = inputs[0];
+    const inputFile = inputs[1];
+    const imagePath = inputs[2];
+    const runBasename = DateTime.now().toFormat('yyyyMMddHHmmss');
+    const outputDir = `output/license-export-pdf-${runBasename}`;
+    try {
+      // Get the users we're going to fetch.
+      // TODO - switch to medlemsnummer.
+      const inputData = await await this.excel.getFullLicenseInput(inputFile);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir);
+      }
+
+      // Fetch more data (and the image) for each.
+      for (const inputMemberData of inputData) {
+        let image;
+        if (inputMemberData.imageStatus === 'MANGLER') {
+          image = null;
+        } else {
+          image = fs.readFileSync(
+            imagePath + '/' + inputMemberData.memberNumber + '.jpg',
+            { encoding: 'base64' },
+          );
+        }
+
+        const licenseData = this.mapLicenses(inputMemberData);
+        const fieldData = {
+          department: inputMemberData.department,
+          area: inputMemberData.area,
+          name: inputMemberData.camposName,
+          function: '',
+          image,
+          ...licenseData,
+        };
+
+        const nameFilenamePart = sanitize(inputMemberData.camposName)
+          .toLocaleLowerCase()
+          .replace(/ /g, '_');
+        const outputPath =
+          outputDir +
+          '/' +
+          nameFilenamePart +
+          '-' +
+          inputMemberData.memberNumber +
+          '.pdf';
+        await this.pdf.generateDriversLicense(
+          pdfTemplate,
+          fieldData,
+          outputPath,
+        );
+      }
     } catch (error) {
       this.logger.error(error, error.stack);
     }
