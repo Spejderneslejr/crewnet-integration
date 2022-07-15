@@ -236,3 +236,27 @@ loop Add every missing user to the workplace
     cli ->> crewnet: POST /v1/events/(event-id)/workplaces/(workplace_id)/users
 end
 ```
+
+## Guest helper
+
+```mermaid
+sequenceDiagram
+participant gh as Gæste Hjælper(GH)
+participant fk as Frivillig Koordinator(FK)
+participant campos as CampOS/Easytracker
+participant cni as Crewnet Integration
+participant crewnet as CrewNet
+
+gh ->> campos: volunteers for work
+alt (No existing user)
+fk ->> campos: Fills in name and email, creates partner
+else (Has existing user)
+fk ->> campos: Find existing partner
+end
+fk ->> campos: Adds Assigns GH to udvalg
+campos ->> cni: ping
+cni ->> campos: Get partners for tasks that has<br>udvalg assigned
+campos ->> cni: partners
+cni ->> crewnet: Create missing uses
+cni ->> crewnet: Assign users to workplace categories
+```

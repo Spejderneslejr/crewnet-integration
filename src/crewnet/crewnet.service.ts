@@ -85,9 +85,42 @@ export class CrewnetService {
     });
   }
 
-  private campOSUserMap: { [key: number]: User } = {};
+  async getWorkplaceCategoriesCampOSLookup() {
+    const categories = await this.workplaceCategoriesGet();
+    // Match eg
+    // CampOS org 411
+    const matcher = /^CampOS org (?<camposOrgId>[0-9]+)$/;
 
-  async getCampOSUserMapping() {
+    const map = categories.reduce<{
+      [keys: number]: WorkplaceCategory;
+    }>((acc, current) => {
+      if (current.description) {
+        const matches = current.description.match(matcher);
+        if (matches !== null) {
+          acc[matches.groups.camposOrgId] = current;
+        }
+      }
+      return acc;
+    }, {});
+
+    this.logger.debug({ map });
+    this.logger.debug(
+      'Mapped workplace categories to ' +
+        Object.keys(map).length +
+        ' campos org ids',
+    );
+
+    return map;
+  }
+
+  private campOSUserMap: { [key: number]: User } = {};
+  /**
+   * Given a mapping from crewnet user id to campos partner id, generate a new
+   * map that maps from a campos partner id to a crewnet user.
+   */
+  async getCampOSUserMapping(crewnetIdToCamposPartnerId: {
+    [key: number]: number;
+  }) {
     if (Object.keys(this.campOSUserMap).length > 0) {
       return this.campOSUserMap;
     }
@@ -97,13 +130,17 @@ export class CrewnetService {
     // Need a cleaner way of getting to event_id.
     const users = await this.usersGet();
 
-    const matcher = /^(?<camposId>\d)+@crewnet.sl2022.dk$/;
     this.campOSUserMap = users.reduce<typeof this.campOSUserMap>(
       (acc, current) => {
-        const found = current.email.match(matcher);
-        if (found !== null && found.length > 0) {
-          acc[parseInt(found[0])] = current;
+        const partnerId = crewnetIdToCamposPartnerId[current.id];
+        const matches = current.email.match(/^(\d+)@crewnet.sl2022.dk$/);
+        if (partnerId !== undefined) {
+          acc[partnerId] = current;
+        } else if (matches !== null) {
+          // Fall back to email lookup.
+          acc[matches[1]] = current;
         }
+
         return acc;
       },
       {},
@@ -152,14 +189,26 @@ export class CrewnetService {
     return;
   }
 
-  async userCreate(_name: string): Promise<void> {
+  async userCreate(postData: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    birthday: string | null;
+    address: string | null;
+    zip: string | null;
+    city: string | null;
+    country: string | null;
+    phone: string | null;
+    no_phone: boolean | null;
+  }): Promise<number> {
     const data = await lastValueFrom(
-      this.httpService.get(`${this.apiBase}/events`),
+      this.httpService.post(`${this.apiBase}/users`, postData),
     );
-    console.log(data.data);
+    const userId = data.data.id as number;
 
-    return;
+    return userId;
   }
+
   async workplaceCreate(
     name: string,
     workplace_category_id: number | null = null,
@@ -215,12 +264,26 @@ export class CrewnetService {
   async workplacesCategoriesUsersGet(
     workplace_category_id: number,
   ): Promise<Array<{ id: number; name: string }>> {
-    const data = await lastValueFrom(
-      this.httpService.get(
-        `${this.apiBase}/workplace_categories/${workplace_category_id}/users`,
-      ),
+    this.logger.debug(
+      'Fetching users for workplace category ' + workplace_category_id,
     );
-    return data.data;
+
+    try {
+      const data = await lastValueFrom(
+        this.httpService.get(
+          `${this.apiBase}/workplace_categories/${workplace_category_id}/users`,
+        ),
+      );
+
+      return data.data;
+    } catch (error) {
+      this.logger.error(
+        'Error while looking up workplace category ' + workplace_category_id,
+        error,
+      );
+      this.logger.error({ error });
+      throw error;
+    }
   }
 
   async workplaceCategoryCreate(
@@ -294,9 +357,10 @@ export class CrewnetService {
    */
   async syncWorkplaceCategoryMembers(
     syncCategories: SyncWorkplaceCategory[],
+    crewnetIdToCamposPartnerId: { [key: number]: number },
     dryRun: boolean,
   ): Promise<void> {
-    const userMap = await this.getCampOSUserMapping();
+    const userMap = await this.getCampOSUserMapping(crewnetIdToCamposPartnerId);
 
     for (const syncCategory of syncCategories) {
       const currentMembers = await this.workplacesCategoriesUsersGet(
@@ -357,8 +421,9 @@ export class CrewnetService {
     return;
   }
 
-  async syncWorkplaceCategory(
+  async addMembersToWorkplaceCategories(
     syncCategories: SyncWorkplaceCategory[],
+    crewnetIdToCamposPartnerId: { [key: number]: number },
     syncMembers = true,
     dryRun = false,
   ): Promise<void> {
@@ -399,7 +464,11 @@ export class CrewnetService {
       return;
     }
     // All categories now exists, now add members.
-    await this.syncWorkplaceCategoryMembers(syncCategories, dryRun);
+    await this.syncWorkplaceCategoryMembers(
+      syncCategories,
+      crewnetIdToCamposPartnerId,
+      dryRun,
+    );
 
     return;
   }
@@ -593,6 +662,170 @@ export class CrewnetService {
     this.logger.log(
       'Updated ' + updateCount + ' users' + (dryRun ? ' (dry-run)' : ''),
     );
+  }
+
+  async syncWorkplaceCategoryGuestHelpers(
+    workplaceCategoriesSync: {
+      [key: number]: { campOSOrgId: number; camposUserIds: number[] };
+    },
+    dryRun = false,
+  ) {
+    const camposOrgIds = Object.keys(
+      workplaceCategoriesSync,
+    ) as unknown as Array<keyof typeof workplaceCategoriesSync>;
+
+    this.logger.debug('Processing campos org ids ' + camposOrgIds.join(', '));
+    const workplaceCategoriesLookup =
+      await this.getWorkplaceCategoriesCampOSLookup();
+
+    for (const orgIdToSync of camposOrgIds) {
+      const syncCategory = workplaceCategoriesSync[orgIdToSync];
+      const workplaceCategory = workplaceCategoriesLookup[orgIdToSync];
+      if (workplaceCategory === undefined) {
+        throw new Error(
+          `Was not able to look up workplace category for campos org id ${orgIdToSync}`,
+        );
+      }
+      const currentMembers = await this.workplacesCategoriesUsersGet(
+        workplaceCategory.id,
+      );
+
+      const currentMemberIds = currentMembers.reduce((acc, current) => {
+        acc.push(current.id);
+        return acc;
+      }, [] as number[]);
+
+      // Verify that the campos user we're looking at is not already in the
+      // workplace category
+      for (const member of syncCategory.camposUserIds) {
+        if (!currentMemberIds.includes(member)) {
+          this.logger.log(
+            `Adding crewnet user ${member} to category ${workplaceCategory.name} (${workplaceCategory.id})`,
+          );
+          if (dryRun) {
+            this.logger.log('(dry run, not adding)');
+          } else {
+            await this.workplaceCategoryApply(member, workplaceCategory.id);
+          }
+        } else {
+          this.logger.debug('Skipping existing correctly placed ' + member);
+        }
+      }
+    }
+    return;
+  }
+
+  async ensureGuestHelperUsers(
+    camposHelpersList: Array<{
+      fullName: string;
+      firstName: string;
+      lastName: string;
+      partner_id: number;
+      birthdate: string | null;
+      email: string;
+      mobile: string;
+      organization_id: number;
+      organization_name: string;
+    }>,
+    crewnetIdToCamposPartnerId: { [key: number]: number },
+    dryRun = true,
+  ): Promise<
+    Array<{
+      campOSOrgId: number;
+      crewnetUserId: number;
+      created: boolean;
+    }>
+  > {
+    // Get a a list of members that has an <id>@crewnet.sl2022.dk address
+    // This should include all GuestHelpers as we don't allow them to change
+    // their email.
+    const crewnetUsersLookup = await this.getCampOSUserMapping(
+      crewnetIdToCamposPartnerId,
+    );
+
+    const crewnetUsers = Object.values(crewnetUsersLookup);
+    // List of all crewnet id's campos know of.
+    // const existingCrewnetUserIds = Object.keys(crewnetIdToCamposPartnerId);
+
+    const returnList: Awaited<ReturnType<typeof this.ensureGuestHelperUsers>> =
+      [];
+    // Then go looking for missing users.
+    this.logger.debug({ camposHelpersList });
+    const needsCreate: typeof camposHelpersList = [];
+    // TODO - we could also update the user if something has changed..
+    for (const helper of camposHelpersList) {
+      const lookup = crewnetUsers.find((crewnetUser) => {
+        return (
+          // Find user on partner_id prefix in email.
+          crewnetUser.id === helper.partner_id ||
+          // Find user on match of full name - this should catch the situation
+          // where campos has not yet discovered a newly created crewnet user
+          // with a partner_id prefix.
+          (crewnetUser.first_name === '(GH) ' + helper.firstName &&
+            crewnetUser.last_name === helper.lastName) ||
+          // Find user on name match without (GH) - this catches the situation
+          // where the user already exists.
+          (crewnetUser.first_name === helper.firstName &&
+            crewnetUser.last_name === helper.lastName)
+        );
+      });
+      if (lookup === undefined) {
+        this.logger.log(
+          `Want to create ${helper.fullName} (${helper.partner_id})`,
+        );
+        needsCreate.push(helper);
+        continue;
+      } else {
+        // User does not need to be created, just return the data about the user.
+        returnList.push({
+          campOSOrgId: helper.organization_id,
+          crewnetUserId: lookup.id,
+          created: false,
+        });
+      }
+    }
+
+    this.logger.log(`Want to create ${needsCreate.length} users`);
+
+    for (const user of needsCreate) {
+      const createUserData = {
+        first_name: '(GH) ' + user.firstName,
+        last_name: user.lastName,
+        email: user.partner_id + '@crewnet.sl2022.dk',
+        birthday: user.birthdate || '1922-01-01',
+        address: null,
+        zip: null,
+        city: null,
+        country: 'DK',
+        phone: user.mobile || null,
+        no_phone: user.mobile === null,
+      };
+
+      if (dryRun) {
+        this.logger.log(
+          `Dry run, not creating user ${createUserData.first_name} ${createUserData.last_name} - ${createUserData.email}`,
+        );
+        this.logger.debug({ crateUserData: createUserData });
+        // No clue what the crewnet user id is.
+        returnList.push({
+          campOSOrgId: user.organization_id,
+          crewnetUserId: -1,
+          created: false,
+        });
+      } else {
+        this.logger.log(
+          `Creating user user ${createUserData.first_name} ${createUserData.last_name} - ${createUserData.email}`,
+        );
+        const userId = await this.userCreate(createUserData);
+        returnList.push({
+          campOSOrgId: user.organization_id,
+          crewnetUserId: userId,
+          created: true,
+        });
+      }
+    }
+
+    return returnList;
   }
 
   logDiff(a: object, b: object, changed: string[]) {

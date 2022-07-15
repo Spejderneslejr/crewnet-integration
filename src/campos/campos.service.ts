@@ -7,6 +7,19 @@ export type UnitResult = {
   name: string;
 };
 
+export type GuestHelper = {
+  id: number;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  birthdate: string | null;
+  partner_id: number;
+  email: string;
+  mobile: string;
+  organization_id: number | false;
+  organization_name: string | null;
+};
+
 const countryCodeMap = {
   Afghanistan: '+93',
   Albanien: '+355',
@@ -444,6 +457,18 @@ export class CamposService {
     return returnMembers;
   }
 
+  async getCrewnetIdToCamposPartnerId() {
+    const members = await this.memberWithCrewnetIdData();
+    const crewnetIdToCamposPartnerId = members.reduce<{
+      [keys: number]: number;
+    }>((acc, current) => {
+      acc[current.crewnet_user] = current.partner_id;
+      return acc;
+    }, {});
+
+    return crewnetIdToCamposPartnerId;
+  }
+
   matchDkPhone = /^((\+45)|(0045))(\d{8})$/;
   CODE_DENMARK = 59;
 
@@ -457,10 +482,10 @@ export class CamposService {
       return '';
     }
     // Remove spaces
-    phoneNumber = phoneNumber.replace(/\s/g, '');
+    phoneNumber = phoneNumber.replace(/\s/g, '').trim();
 
     // Remove som very specific cases where the number is ended with some text
-    phoneNumber = phoneNumber.replace(/\(?[a-zæøå]+\)?$/gi, '');
+    phoneNumber = phoneNumber.replace(/\(?\\?[a-zæøå]+\)?$/gi, '');
     const dkPhone = phoneNumber.match(this.matchDkPhone);
     if (dkPhone !== null) {
       return '+45' + dkPhone[4];
@@ -483,9 +508,10 @@ export class CamposService {
       country_id[0] !== this.CODE_DENMARK
     ) {
       const fixedNumber = countryCodeMap[country_id[1]] + phoneNumber;
-      this.logger.warn(
-        `Fixing number for ${crewnet_user}: Phone:"${phoneNumber}" Country: ${country_id[0]} / ${country_id[1]} - setting number to ${fixedNumber}`,
+      this.logger.debug(
+        `Fixing number for ${crewnet_user} / ${member_number}: Phone:"${phoneNumber}" Country: ${country_id[0]} / ${country_id[1]} - setting number to ${fixedNumber}`,
       );
+
       return fixedNumber;
     }
 
@@ -494,8 +520,8 @@ export class CamposService {
       return phoneNumber;
     }
 
-    this.logger.warn(
-      `Could not match/clean number for ${crewnet_user} / ${member_number}: Phone:"${phoneNumber}" Country: ${country_id[0]} / ${country_id[1]}`,
+    this.logger.debug(
+      `Could not match/clean number for ${crewnet_user} / ${member_number}: Phone:"${phoneNumber}" ${phoneNumber.length} Country: ${country_id[0]} / ${country_id[1]}`,
     );
     return null;
   }
@@ -540,10 +566,178 @@ export class CamposService {
     return units;
   }
 
+  GUEST_HELPER_PROJECT_ID = 6;
+  GH_PARTNER_IGNORE = [537, 522];
+  /**
+   * Get a list of data of all guest helpers.
+   *
+   * Specifically get a list of data from the helper cases, and merge in data
+   * from an optionally associated partner.
+   *
+   * @returns List of data on helpers
+   */
+  async getGuestHelperPartners(): Promise<Array<GuestHelper>> {
+    // Get all tasks associated with the project.
+    const getTasksResults = (await this.executeKw(
+      'project.task',
+      'search_read',
+      [],
+      {
+        domain: [['project_id', '=', this.GUEST_HELPER_PROJECT_ID]],
+        fields: [
+          'id',
+          'name',
+          'partner_id',
+          'related_email',
+          'related_mobile',
+          'organization_id',
+        ],
+        context: { lang: 'da_DK' },
+      },
+    )) as unknown as Array<{
+      id: number;
+      name: string;
+      partner_id: any[];
+      related_email: string;
+      related_mobile: string;
+      organization_id: any[];
+    }>;
+
+    // Go through the projects and find the associated  partner_ids we should fetch.
+    // Also make sure the partner_id is either null or a number.
+    const partnerIds = [];
+    for (const task of getTasksResults) {
+      if (
+        task.partner_id &&
+        task.partner_id[0] &&
+        // Make sure we keep the list unique.
+        !partnerIds.includes(task.partner_id[0]) &&
+        // Ignore some specific partner ids
+        !this.GH_PARTNER_IGNORE.includes(task.partner_id[0])
+      ) {
+        task.partner_id = task.partner_id[0];
+        partnerIds.push(task.partner_id);
+      } else {
+        task.partner_id = null;
+      }
+    }
+
+    // Fetch all the partners and build a lookup structure for when we need them
+    // later.
+    const partners = await this.getManyPartnerByIds(partnerIds);
+
+    type PartnerData = {
+      id: number;
+      fullName: string;
+      lastName: string;
+      birthdate: string | null;
+      firstName: string;
+    };
+
+    const partnerLookup: { [key: number]: PartnerData } = {};
+    for (const partner of partners) {
+      partnerLookup[partner.id] = partner;
+    }
+
+    // Go through the tasks again, this time we've loaded the partner data so
+    // we can build the objects we need for further synchronizing.
+    const returnData: GuestHelper[] = [];
+    for (const taskResult of getTasksResults) {
+      // We've ensured this cast is safe.
+      const partner_id = taskResult.partner_id as any as null | number;
+      let fullName = '';
+      let firstName = '';
+      let lastName = '';
+      let birthdate = null;
+
+      if (partner_id !== null) {
+        const partnerData = partnerLookup[partner_id];
+        // We filter out a special case where the name is an email.
+        if (
+          partnerData !== undefined &&
+          partnerData.fullName.indexOf('@') === -1
+        ) {
+          fullName = partnerData.fullName;
+          firstName = partnerData.firstName || '';
+          lastName = partnerData.lastName || '';
+          birthdate = partnerData.birthdate || '';
+        }
+      }
+
+      returnData.push({
+        id: taskResult.id,
+        fullName: fullName,
+        firstName: firstName,
+        lastName: lastName,
+        birthdate: birthdate,
+        partner_id: partner_id,
+        email: taskResult.related_email || '',
+        mobile: taskResult.related_mobile,
+        organization_id: taskResult.organization_id[0] as number,
+        organization_name: taskResult.organization_id[1] as string,
+      });
+    }
+
+    this.logger.debug({ returnData });
+    return returnData;
+  }
+
+  async getManyPartnerByIds(partner_ids: number[]) {
+    this.logger.log(
+      `Fetching ${partner_ids.length} partners ${partner_ids.join(', ')}`,
+    );
+
+    const partners = (await this.executeKw('res.partner', 'search_read', [], {
+      domain: [['id', 'in', partner_ids]],
+      fields: [
+        'name',
+        'display_name',
+        'firstname',
+        'lastname',
+        'birthdate_date',
+      ],
+    })) as unknown as Array<{
+      id: number;
+      name: string;
+      firstname: string;
+      lastname: string;
+      birthdate_date: string | null;
+    }>;
+
+    this.logger.debug({ partners });
+
+    return partners.map((partner) => {
+      return {
+        id: partner.id,
+        fullName: partner.name,
+        firstName: partner.firstname,
+        lastName: partner.lastname,
+        birthdate: partner.birthdate_date,
+      };
+    });
+  }
+
+  async getPartnerById(partner_id: number) {
+    this.logger.log(`Fetching partner ${partner_id}`);
+
+    const partners = (await this.executeKw('res.partner', 'search_read', [], {
+      domain: [['id', '=', partner_id]],
+      fields: ['name'],
+      context: { lang: 'da_DK' },
+    })) as unknown as Array<{
+      id: number;
+      name: string;
+    }>;
+
+    this.logger.debug('Fetched partner: ' + JSON.stringify(partners));
+
+    return partners;
+  }
+
   executeKw(
     model: string,
     method: string,
-    paramsByPosition: string[] = [],
+    paramsByPosition: any, //string[] = [],
     paramsByKeyword: unknown = {},
   ): Promise<string> {
     const clientOptions = {
@@ -562,6 +756,7 @@ export class CamposService {
     fparams.push(paramsByPosition);
     fparams.push(paramsByKeyword);
 
+    this.logger.debug({ fparams });
     return new Promise((resolve, reject) => {
       client.methodCall('execute_kw', fparams, function (error, value) {
         if (error) {

@@ -11,7 +11,6 @@ import {
   CrewnetSyncMemberContactInfo,
   EventGetAll,
   GroupCreateCommand,
-  UserCreateCommand,
   WorkplaceCategoriesGetCommand,
   WorkplaceCreateCommand,
   ConvertCsvImages,
@@ -20,6 +19,7 @@ import {
   CrewnetBulkDelete,
   GenerateLicenseSheet,
   GenerateLicensePdf,
+  SyncGuestHelpers,
 } from './cli/all.command';
 import { CrewnetModule } from './crewnet/crewnet.module';
 import { ConfigModule } from '@nestjs/config';
@@ -39,11 +39,10 @@ import { PDFService } from './crewnet/pdf.service';
   ],
 
   providers: [
-    GenerateLicensePdf,
-    PDFService,
     CamposMembersInUnit,
     CamposSyncWorkplaceCategoriesAuto,
     CamposSyncWorkplaceCategoryByUnit,
+    CliUtilsService,
     ConvertCsvImages,
     ConvertSpreadsheetImages,
     CrewnetBulkDelete,
@@ -55,13 +54,14 @@ import { PDFService } from './crewnet/pdf.service';
     CrewnetSyncMemberContactInfo,
     CSVService,
     EventGetAll,
-    JimpService,
-    CliUtilsService,
     ExcelJSService,
+    GenerateLicensePdf,
     GenerateLicenseSheet,
     GroupCreateCommand,
+    JimpService,
     Logger,
-    UserCreateCommand,
+    PDFService,
+    SyncGuestHelpers,
     WorkplaceCategoriesGetCommand,
     WorkplaceCreateCommand,
     WorkplacesGetCommand,

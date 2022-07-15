@@ -6,6 +6,7 @@ export type LicenseImageStatus = 'OK' | 'MANGLER' | 'LILLE BILLEDE';
 export type MemberLicenseData = {
   memberNumber: string;
   inputName: string;
+  email: string;
   camposName: string;
   area: string;
   department: string;
@@ -119,6 +120,7 @@ export class ExcelJSService {
       'Medlemsnummer',
       'Navn',
       'Fuldt navn',
+      'Email',
       'Område',
       'Udvalg',
       'Kørekort kategorier',
@@ -157,15 +159,16 @@ export class ExcelJSService {
         memberNumber: row.getCell(1).value?.toString().trim(),
         inputName: row.getCell(2).value?.toString().trim(),
         camposName: row.getCell(3).value?.toString().trim(),
-        area: row.getCell(4).value?.toString().trim(),
-        department: row.getCell(5).value?.toString().trim(),
+        email: row.getCell(4).value?.toString().trim(),
+        area: row.getCell(5).value?.toString().trim(),
+        department: row.getCell(6).value?.toString().trim(),
         licenses: row
-          .getCell(6)
+          .getCell(7)
           .value?.toString()
           .split('\n')
           .filter((e) => e !== ''),
         imageStatus: row
-          .getCell(7)
+          .getCell(8)
           .value?.toString()
           .trim() as LicenseImageStatus,
       });

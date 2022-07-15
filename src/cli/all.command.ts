@@ -1,10 +1,15 @@
 import { Logger } from '@nestjs/common';
+import * as fs from 'fs';
+import * as Jimp from 'jimp';
+import { DateTime } from 'luxon';
 import { Command, CommandRunner, Option } from 'nest-commander';
-import { CamposService } from '../campos/campos.service';
+import { CamposService, GuestHelper } from '../campos/campos.service';
+import { CliUtilsService } from '../cliutils';
 import {
   CrewnetService,
   SyncWorkplaceCategory,
 } from '../crewnet/crewnet.service';
+import { PDFService } from '../crewnet/pdf.service';
 import { XslxService } from '../crewnet/xslx.service';
 import { CSVService } from '../csv.service';
 import {
@@ -12,12 +17,8 @@ import {
   LicenseImageStatus,
   MemberLicenseData,
 } from '../exceljs.service';
-import * as fs from 'fs';
-import { CliUtilsService } from '../cliutils';
-import { DateTime } from 'luxon';
-import * as Jimp from 'jimp';
-import { PDFService } from '../crewnet/pdf.service';
 import sanitize = require('sanitize-filename');
+import { toHexStringOfMinLength } from 'pdf-lib';
 
 @Command({
   name: 'event:getAll',
@@ -38,18 +39,6 @@ export class EventGetAll implements CommandRunner {
   }
 }
 
-@Command({
-  name: 'user:create',
-  arguments: '[username]',
-})
-export class UserCreateCommand implements CommandRunner {
-  constructor(private crewnet: CrewnetService) {}
-
-  async run(_inputs: string[], _options: Record<string, any>): Promise<void> {
-    await this.crewnet.userCreate('test testesen');
-    return;
-  }
-}
 @Command({
   name: 'workplaces:get',
   arguments: '[eventid]',
@@ -126,6 +115,112 @@ export class CamposMembersInUnit implements CommandRunner {
     }
 
     return;
+  }
+}
+
+@Command({
+  name: 'campos:syncGuestHelpers',
+  arguments: '',
+})
+export class SyncGuestHelpers implements CommandRunner {
+  constructor(
+    private readonly logger: Logger,
+    private campos: CamposService,
+    private crewnet: CrewnetService,
+  ) {}
+
+  @Option({
+    flags: '--dry-run',
+    description: 'Do not create, update or delete',
+  })
+  parseShell() {
+    return true;
+  }
+
+  async run(_inputs: string[], options: Record<string, any>): Promise<void> {
+    // We've checked organization_id is non-false so state it.
+    type AssignedGuestHelper = Omit<GuestHelper, 'organization_id'> & {
+      organization_id: number;
+    };
+
+    let assignedHelpers: Array<AssignedGuestHelper>;
+    const dryRun = options['dryRun'] === true;
+    try {
+      // Get base data on all helper partners.
+      const helpers = await this.campos.getGuestHelperPartners();
+
+      // Filter down to only the partners that has been associated with an
+      // organization (should be an Udvalg).
+      const before = helpers.length;
+      assignedHelpers = helpers.filter((helper) => {
+        return (
+          typeof helper.organization_id === 'number' &&
+          helper.email &&
+          helper.firstName &&
+          helper.lastName
+        );
+      }) as AssignedGuestHelper[];
+
+      this.logger.log(
+        `Filtered ${before} Guest helpers down to ${assignedHelpers.length} helpers assigned to units`,
+      );
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+
+    if (assignedHelpers.length === 0) {
+      this.logger.log('Found no helpers to synchronize');
+      return;
+    }
+
+    this.logger.log(
+      `Got ${assignedHelpers.length} helpers, synchronizing with Crewnet`,
+    );
+
+    const crewnetIdToCamposPartnerId =
+      await this.campos.getCrewnetIdToCamposPartnerId();
+
+    // Sync the helpers to crewnet - aka, ensure their users exists.
+    // This method gives us a list of crewnet users back that has either been
+    // looked up or created.
+    const crewnetGuestHelpers = await this.crewnet.ensureGuestHelperUsers(
+      assignedHelpers as Array<AssignedGuestHelper>,
+      crewnetIdToCamposPartnerId,
+      dryRun,
+    );
+
+    // Calculate which workplace categories the helpers are supposed to be in.
+    type HelpersInCampOSOrg = {
+      campOSOrgId: number;
+      camposUserIds: number[];
+    };
+
+    // Map from crewnet org id to campos user ids.
+    const workplaceCategoriesSync: { [key: number]: HelpersInCampOSOrg } = {};
+
+    // Then make sure the helpers are associated to categories.
+    for (const crewnetHelper of crewnetGuestHelpers) {
+      if (
+        crewnetHelper.campOSOrgId &&
+        workplaceCategoriesSync[crewnetHelper.campOSOrgId] === undefined
+      ) {
+        workplaceCategoriesSync[crewnetHelper.campOSOrgId] = {
+          campOSOrgId: crewnetHelper.campOSOrgId,
+          camposUserIds: [],
+        };
+      }
+
+      // Add the user to the category.
+      workplaceCategoriesSync[crewnetHelper.campOSOrgId].camposUserIds.push(
+        crewnetHelper.crewnetUserId,
+      );
+    }
+
+    await this.crewnet.syncWorkplaceCategoryGuestHelpers(
+      workplaceCategoriesSync,
+      dryRun,
+    );
   }
 }
 
@@ -301,8 +396,12 @@ export class CamposSyncWorkplaceCategoriesAuto implements CommandRunner {
         );
       }
 
-      await this.crewnet.syncWorkplaceCategory(
+      const crewnetIdToCamposPartnerId =
+        await this.campos.getCrewnetIdToCamposPartnerId();
+
+      await this.crewnet.addMembersToWorkplaceCategories(
         syncCategories,
+        crewnetIdToCamposPartnerId,
         true,
         options['dryRun'] === true,
       );
@@ -353,6 +452,8 @@ export class CamposSyncWorkplaceCategoryByUnit implements CommandRunner {
       const unit = units[0];
 
       const membersInUnit = await this.campos.membersByUnit(unitId);
+      const crewnetIdToCamposPartnerId =
+        await this.campos.getCrewnetIdToCamposPartnerId();
 
       const syncCategories = [
         {
@@ -366,8 +467,9 @@ export class CamposSyncWorkplaceCategoryByUnit implements CommandRunner {
         `got ${membersInUnit.length} members of unit ${unit.name} (${unit.id})`,
       );
 
-      await this.crewnet.syncWorkplaceCategory(
+      await this.crewnet.addMembersToWorkplaceCategories(
         syncCategories,
+        crewnetIdToCamposPartnerId,
         true,
         options['dryRun'] === true,
       );
@@ -527,7 +629,8 @@ export class GenerateLicenseSheet implements CommandRunner {
 
       const outputMemberData: Array<sheetRow> = [];
       // Fetch more data (and the image) for each.
-      for (const inputMemberData of inputData) {
+      for (let i = 0; i < inputData.length; i++) {
+        const inputMemberData = inputData[i];
         let memberData;
         try {
           memberData = await this.campos.memberByMemberNumber(
@@ -546,7 +649,10 @@ export class GenerateLicenseSheet implements CommandRunner {
             (competence) =>
               competence.competence_group_id === DRIVING_LICENSE_GROUP_ID,
           )
-          .map((drivingLicense) => drivingLicense.competence_type_name)
+          .map(
+            (drivingLicense) =>
+              `${drivingLicense.competence_type_name} (${drivingLicense.competence_type_id})`,
+          )
           .join('\r\n');
 
         let imageStatus: LicenseImageStatus = 'OK';
@@ -593,7 +699,9 @@ export class GenerateLicenseSheet implements CommandRunner {
           }
         }
 
-        this.logger.log('Processed ' + memberData.member_number);
+        this.logger.log(
+          `Processed ${i + 1}/${inputData.length} ${memberData.member_number}`,
+        );
         outputMemberData.push({
           memberNumber: memberData.member_number,
           inputName: inputMemberData.name,
@@ -644,65 +752,78 @@ export class GenerateLicensePdf implements CommandRunner {
   ) {}
 
   licenseTypeMap = {
-    'Kørekort A1, A2': { cat: '', other: null, ignore: true },
-    'Kørekort AM': { cat: '', other: null, ignore: true },
-    'Kørekort B': { cat: 'cat_b', other: null, ignore: false },
-    'Kørekort BE': { cat: 'cat_be', other: null, ignore: false },
-    'Kørekort C': { cat: 'cat_c', other: null, ignore: false },
-    'Kørekort C1': { cat: 'cat_c', other: null, ignore: false },
-    'Kørekort CE': { cat: 'cat_ce', other: null, ignore: false },
-    'Kørekort D1': { cat: 'cat_d', other: null, ignore: false },
-    'Kørekort DE': { cat: 'cat_de', other: null, ignore: false },
-    'Kørekort LK': { cat: '', other: null, ignore: false },
-    'EU bevis til bus': { cat: null, other: 'Bus', ignore: false },
-    'EU bevis til lastbil': { cat: null, other: 'Lastbil', ignore: false },
-    Krancertifikat: { cat: null, other: 'Kran', ignore: false },
-    Liftcertifikat: { cat: null, other: 'Lift', ignore: false },
-    'Teleskoplæsser certifikat': {
-      cat: null,
-      other: 'Teleskop',
-      ignore: false,
-    },
-    'Truckcertifikat A': { cat: null, other: 'Truck A', ignore: false },
-    'Truckcertifikat B': { cat: null, other: 'Truck B', ignore: false },
+    'EU bevis til bus (65)': { cat: 'cat_eu_bus', ignore: false },
+    'EU bevis til lastbil (64)': { cat: 'cat_eu_last', ignore: false },
+    'Kørekort A1, A2 (3)': { cat: '', ignore: true },
+    'Kørekort AM (2)': { cat: '', ignore: true },
+    'Kørekort B (4)': { cat: 'cat_b', ignore: false },
+    // Currently missing from template
+    //    'Kørekort B1': { cat: 'cat_b1', other: null, ignore: false },
+    'Kørekort BE (66)': { cat: 'cat_be', ignore: false },
+    'Kørekort C (6)': { cat: 'cat_c', ignore: false },
+    'Kørekort C1 (5)': { cat: 'cat_c1', ignore: false },
+    'Kørekort CE (67)': { cat: 'cat_ce', ignore: false },
+    'Kørekort D1 (7)': { cat: 'cat_d1', ignore: false },
+    // Beware of the bug below.
+    'Kørekort D1 (8)': { cat: 'cat_d', ignore: false },
+    'Kørekort DE (68)': { cat: 'cat_de', ignore: false },
+    'Kørekort LK (1)': { cat: 'cat_lk', ignore: false },
+    'Krancertifikat (12)': { cat: 'cat_kran', ignore: false },
+    'Liftcertifikat (13)': { cat: 'cat_lift', ignore: false },
+    'Teleskoplæsser certifikat (63)': { cat: 'cat_teleskop', ignore: false },
+    'Truckcertifikat A (10)': { cat: 'cat_truck_a', ignore: false },
+    'Truckcertifikat B (11)': { cat: 'cat_truck_b', ignore: false },
   };
 
   mapLicenses(memberData: MemberLicenseData): {
-    other: string;
     cat_b: boolean;
-    cat_c: boolean;
-    cat_d: boolean;
+    cat_b1: boolean;
     cat_be: boolean;
+    cat_c: boolean;
+    cat_c1: boolean;
     cat_ce: boolean;
+    cat_d: boolean;
+    cat_d1: boolean;
     cat_de: boolean;
+    cat_eu_bus: boolean;
+    cat_eu_last: boolean;
+    cat_truck_a: boolean;
+    cat_truck_b: boolean;
+    cat_kran: boolean;
+    cat_lift: boolean;
+    cat_teleskop: boolean;
   } {
     const returnData = {
-      other: '',
-      cat_b: true,
-      cat_c: false,
-      cat_d: true,
+      cat_b: false,
+      cat_b1: false,
       cat_be: false,
+      cat_c: false,
+      cat_c1: false,
       cat_ce: false,
-      cat_de: true,
+      cat_d: false,
+      cat_d1: false,
+      cat_de: false,
+      cat_eu_bus: false,
+      cat_eu_last: false,
+      cat_truck_a: false,
+      cat_truck_b: false,
+      cat_kran: false,
+      cat_lift: false,
+      cat_teleskop: false,
     };
 
-    const other = [];
     for (const license of memberData.licenses) {
       const typeData = this.licenseTypeMap[license];
+      if (typeData === undefined) {
+        throw new Error(`Unable to look up license type ${license}`);
+      }
       if (typeData.ignore) {
         continue;
-      }
-
-      if (typeData.other !== null) {
-        other.push(typeData.other);
       }
 
       if (typeData.cat !== null) {
         returnData[typeData.cat] = true;
       }
-    }
-    if (other.length > 0) {
-      returnData.other = other.join(', ');
     }
     return returnData;
   }
@@ -727,10 +848,12 @@ export class GenerateLicensePdf implements CommandRunner {
         if (inputMemberData.imageStatus === 'MANGLER') {
           image = null;
         } else {
-          image = fs.readFileSync(
-            imagePath + '/' + inputMemberData.memberNumber + '.jpg',
-            { encoding: 'base64' },
-          );
+          const imageFileName =
+            imagePath + '/' + inputMemberData.memberNumber + '.jpg';
+          if (!fs.existsSync(imageFileName)) {
+            throw new Error('Could not find file ' + imageFileName);
+          }
+          image = fs.readFileSync(imageFileName, { encoding: 'base64' });
         }
 
         const licenseData = this.mapLicenses(inputMemberData);
@@ -738,7 +861,6 @@ export class GenerateLicensePdf implements CommandRunner {
           department: inputMemberData.department,
           area: inputMemberData.area,
           name: inputMemberData.camposName,
-          function: '',
           image,
           ...licenseData,
         };
