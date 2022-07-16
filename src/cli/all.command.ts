@@ -3,12 +3,9 @@ import * as fs from 'fs';
 import * as Jimp from 'jimp';
 import { DateTime } from 'luxon';
 import { Command, CommandRunner, Option } from 'nest-commander';
-import { CamposService, GuestHelper } from '../campos/campos.service';
+import { CamposService } from '../campos/campos.service';
 import { CliUtilsService } from '../cliutils';
-import {
-  CrewnetService,
-  SyncWorkplaceCategory,
-} from '../crewnet/crewnet.service';
+import { CrewnetService } from '../crewnet/crewnet.service';
 import { PDFService } from '../crewnet/pdf.service';
 import { XslxService } from '../crewnet/xslx.service';
 import { CSVService } from '../csv.service';
@@ -18,7 +15,7 @@ import {
   MemberLicenseData,
 } from '../exceljs.service';
 import sanitize = require('sanitize-filename');
-import { toHexStringOfMinLength } from 'pdf-lib';
+import { CampCtlService } from '../campctl/campctl.service';
 
 @Command({
   name: 'event:getAll',
@@ -127,6 +124,7 @@ export class SyncGuestHelpers implements CommandRunner {
     private readonly logger: Logger,
     private campos: CamposService,
     private crewnet: CrewnetService,
+    private campctl: CampCtlService,
   ) {}
 
   @Option({
@@ -138,89 +136,7 @@ export class SyncGuestHelpers implements CommandRunner {
   }
 
   async run(_inputs: string[], options: Record<string, any>): Promise<void> {
-    // We've checked organization_id is non-false so state it.
-    type AssignedGuestHelper = Omit<GuestHelper, 'organization_id'> & {
-      organization_id: number;
-    };
-
-    let assignedHelpers: Array<AssignedGuestHelper>;
-    const dryRun = options['dryRun'] === true;
-    try {
-      // Get base data on all helper partners.
-      const helpers = await this.campos.getGuestHelperPartners();
-
-      // Filter down to only the partners that has been associated with an
-      // organization (should be an Udvalg).
-      const before = helpers.length;
-      assignedHelpers = helpers.filter((helper) => {
-        return (
-          typeof helper.organization_id === 'number' &&
-          helper.email &&
-          helper.firstName &&
-          helper.lastName
-        );
-      }) as AssignedGuestHelper[];
-
-      this.logger.log(
-        `Filtered ${before} Guest helpers down to ${assignedHelpers.length} helpers assigned to units`,
-      );
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-
-    if (assignedHelpers.length === 0) {
-      this.logger.log('Found no helpers to synchronize');
-      return;
-    }
-
-    this.logger.log(
-      `Got ${assignedHelpers.length} helpers, synchronizing with Crewnet`,
-    );
-
-    const crewnetIdToCamposPartnerId =
-      await this.campos.getCrewnetIdToCamposPartnerId();
-
-    // Sync the helpers to crewnet - aka, ensure their users exists.
-    // This method gives us a list of crewnet users back that has either been
-    // looked up or created.
-    const crewnetGuestHelpers = await this.crewnet.ensureGuestHelperUsers(
-      assignedHelpers as Array<AssignedGuestHelper>,
-      crewnetIdToCamposPartnerId,
-      dryRun,
-    );
-
-    // Calculate which workplace categories the helpers are supposed to be in.
-    type HelpersInCampOSOrg = {
-      campOSOrgId: number;
-      camposUserIds: number[];
-    };
-
-    // Map from crewnet org id to campos user ids.
-    const workplaceCategoriesSync: { [key: number]: HelpersInCampOSOrg } = {};
-
-    // Then make sure the helpers are associated to categories.
-    for (const crewnetHelper of crewnetGuestHelpers) {
-      if (
-        crewnetHelper.campOSOrgId &&
-        workplaceCategoriesSync[crewnetHelper.campOSOrgId] === undefined
-      ) {
-        workplaceCategoriesSync[crewnetHelper.campOSOrgId] = {
-          campOSOrgId: crewnetHelper.campOSOrgId,
-          camposUserIds: [],
-        };
-      }
-
-      // Add the user to the category.
-      workplaceCategoriesSync[crewnetHelper.campOSOrgId].camposUserIds.push(
-        crewnetHelper.crewnetUserId,
-      );
-    }
-
-    await this.crewnet.syncWorkplaceCategoryGuestHelpers(
-      workplaceCategoriesSync,
-      dryRun,
-    );
+    await this.campctl.syncGuestHelpers(options['dryRun'] === true);
   }
 }
 
@@ -361,8 +277,7 @@ export class CrewnetImportWorkplaces implements CommandRunner {
 export class CamposSyncWorkplaceCategoriesAuto implements CommandRunner {
   constructor(
     private readonly logger: Logger,
-    private campos: CamposService,
-    private crewnet: CrewnetService,
+    private campctl: CampCtlService,
   ) {}
 
   @Option({
@@ -374,43 +289,7 @@ export class CamposSyncWorkplaceCategoriesAuto implements CommandRunner {
   }
 
   async run(_inputs: string[], options: Record<string, any>): Promise<void> {
-    try {
-      // Hardcoded to udvalg.
-      const units = await this.campos.getUnitByType(8);
-      this.logger.log('Got ' + units.length + ' Units');
-
-      const syncCategories: SyncWorkplaceCategory[] = [];
-
-      this.logger.log('Fetching members of units...');
-      for (const unit of units) {
-        const membersInUnit = await this.campos.membersByUnit(unit.id);
-
-        syncCategories.push({
-          name: unit.name,
-          camposOrgId: unit.id,
-          members: membersInUnit.map((member) => member.partner_id),
-        });
-
-        this.logger.log(
-          `got ${membersInUnit.length} members of unit ${unit.name} (${unit.id})`,
-        );
-      }
-
-      const crewnetIdToCamposPartnerId =
-        await this.campos.getCrewnetIdToCamposPartnerId();
-
-      await this.crewnet.addMembersToWorkplaceCategories(
-        syncCategories,
-        crewnetIdToCamposPartnerId,
-        true,
-        options['dryRun'] === true,
-      );
-      this.logger.log('Done');
-    } catch (error) {
-      console.error(error);
-    }
-
-    return;
+    await this.campctl.syncWorkplaceCategoriesAuto(options['dryRun'] === true);
   }
 }
 
@@ -486,11 +365,7 @@ export class CamposSyncWorkplaceCategoryByUnit implements CommandRunner {
   name: 'crewnet:syncMemberContactInfo',
 })
 export class CrewnetSyncMemberContactInfo implements CommandRunner {
-  constructor(
-    private readonly logger: Logger,
-    private campos: CamposService,
-    private crewnet: CrewnetService,
-  ) {}
+  constructor(private campctl: CampCtlService) {}
 
   @Option({
     flags: '--dry-run',
@@ -501,29 +376,10 @@ export class CrewnetSyncMemberContactInfo implements CommandRunner {
   }
 
   async run(_inputs: string[], options: Record<string, any>): Promise<void> {
-    try {
-      const memberData = await this.campos.memberWithCrewnetIdData();
-
-      const syncData = memberData.map((member) => {
-        return {
-          crewnetUserId: member.crewnet_user,
-          mobileNumber: member.mobile || null,
-          email: member.email || null,
-          // We trust campos and crewnet to have yyyy-mm-dd dates
-          birthdate: member.birthdate_date || null,
-        };
-      });
-
-      this.logger.log('Got ' + memberData.length + ' Units');
-
-      await this.crewnet.syncMemberData(syncData, options['dryRun'] === true);
-    } catch (error) {
-      console.error(error);
-    }
-
-    return;
+    await this.campctl.syncMemberContactInfo(options['dryRun'] === true);
   }
 }
+
 @Command({
   name: 'general:convertSpreadsheetImages',
   arguments: '<path>',

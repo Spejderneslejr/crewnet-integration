@@ -1,8 +1,18 @@
+import { LogLevel, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ServerModule } from './server.module';
 
+const logLevels: LogLevel[] = ['log', 'error', 'warn'];
+
+if (process.env.LOG_LEVEL === 'debug') {
+  logLevels.push(process.env.LOG_LEVEL);
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(ServerModule);
+  const app = await NestFactory.create(ServerModule, {
+    logger: logLevels,
+  });
+  app.useGlobalPipes(new ValidationPipe());
   await app.listen(3000);
 }
 

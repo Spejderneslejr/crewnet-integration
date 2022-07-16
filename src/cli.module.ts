@@ -30,11 +30,14 @@ import { CSVService } from './csv.service';
 import { CliUtilsService } from './cliutils';
 import { JimpService } from './crewnet/jimp.service';
 import { PDFService } from './crewnet/pdf.service';
+import { CampCtlModule } from './campctl/campctl.module';
+import { CampCtlService } from './campctl/campctl.service';
 
 @Module({
   imports: [
     CrewnetModule,
     CamposModule,
+    CampCtlModule,
     ConfigModule.forRoot({ isGlobal: true }),
   ],
 
@@ -43,6 +46,7 @@ import { PDFService } from './crewnet/pdf.service';
     CamposSyncWorkplaceCategoriesAuto,
     CamposSyncWorkplaceCategoryByUnit,
     CliUtilsService,
+    CampCtlService,
     ConvertCsvImages,
     ConvertSpreadsheetImages,
     CrewnetBulkDelete,

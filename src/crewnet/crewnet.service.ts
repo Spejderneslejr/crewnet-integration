@@ -375,7 +375,7 @@ export class CrewnetService {
       for (const member of syncCategory.members) {
         const crewnetUser = userMap[member];
         if (!crewnetUser) {
-          this.logger.error(
+          this.logger.debug(
             'Could not find crewnet user for campos user ' +
               member +
               ', skipping',
@@ -732,8 +732,10 @@ export class CrewnetService {
   ): Promise<
     Array<{
       campOSOrgId: number;
+      campOSPartnerId: number;
       crewnetUserId: number;
       created: boolean;
+      existing: boolean;
     }>
   > {
     // Get a a list of members that has an <id>@crewnet.sl2022.dk address
@@ -779,8 +781,10 @@ export class CrewnetService {
         // User does not need to be created, just return the data about the user.
         returnList.push({
           campOSOrgId: helper.organization_id,
+          campOSPartnerId: helper.partner_id,
           crewnetUserId: lookup.id,
           created: false,
+          existing: true,
         });
       }
     }
@@ -809,8 +813,10 @@ export class CrewnetService {
         // No clue what the crewnet user id is.
         returnList.push({
           campOSOrgId: user.organization_id,
+          campOSPartnerId: user.partner_id,
           crewnetUserId: -1,
           created: false,
+          existing: false,
         });
       } else {
         this.logger.log(
@@ -819,8 +825,10 @@ export class CrewnetService {
         const userId = await this.userCreate(createUserData);
         returnList.push({
           campOSOrgId: user.organization_id,
+          campOSPartnerId: user.partner_id,
           crewnetUserId: userId,
           created: true,
+          existing: false,
         });
       }
     }
