@@ -36,6 +36,7 @@ export class EndpointsController {
   async getCasRedirect(
     @Query('partner', ParseIntPipe) partnerId: number,
   ): Promise<{ crewnet_user: number }> {
+    this.logger.log('/guesthelper ping for ' + partnerId);
     const syncData = await this.campctl.syncGuestHelpers(this.dryRun, [
       partnerId,
     ]);
