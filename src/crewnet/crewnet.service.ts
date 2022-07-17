@@ -564,7 +564,7 @@ export class CrewnetService {
     );
 
     let updateCount = 0;
-    const emailSyncList = [28846];
+    // const emailSyncList = [28846];
     for await (const camposUser of camposUsers) {
       if (!currentUsersMap.hasOwnProperty(camposUser.crewnetUserId)) {
         this.logger.log(
@@ -582,27 +582,26 @@ export class CrewnetService {
         first_name: currentCrewnetUser.first_name,
         last_name: currentCrewnetUser.last_name,
         email: currentCrewnetUser.email,
-        // We add this in by hand as it does not existing in the current user object.
-        // This means that we will currently not update on a an updated birthdate.
-
         birthday: camposUser.birthdate,
         address: currentCrewnetUser.address,
         zip: currentCrewnetUser.zip,
         city: currentCrewnetUser.city,
         country: currentCrewnetUser.country,
         phone: currentCrewnetUser.phone,
-        no_phone: currentCrewnetUser.no_phone,
+        // We always assume the phone-number is validated so we set no_phone
+        // to disable verification.
+        no_phone: true,
       };
 
       const changed: string[] = [];
 
       // We're not syncing emails for now, but add the email if the user is on the list.
-      if (emailSyncList.includes(currentCrewnetUser.id)) {
-        if (updatedCrewnetUser.email != camposUser.email) {
-          updatedCrewnetUser.email = camposUser.email;
-          changed.push('email');
-        }
+      // if (emailSyncList.includes(currentCrewnetUser.id)) {
+      if (updatedCrewnetUser.email != camposUser.email) {
+        updatedCrewnetUser.email = camposUser.email;
+        changed.push('email');
       }
+      // }
 
       if (
         updatedCrewnetUser.phone !== camposUser.mobileNumber &&
@@ -610,14 +609,8 @@ export class CrewnetService {
       ) {
         if (camposUser.mobileNumber) {
           updatedCrewnetUser.phone = camposUser.mobileNumber;
-          if (updatedCrewnetUser.no_phone) {
-            updatedCrewnetUser.no_phone = false;
-          }
         } else {
           updatedCrewnetUser.phone = '';
-          if (!updatedCrewnetUser.no_phone) {
-            updatedCrewnetUser.no_phone = true;
-          }
         }
         changed.push('phone');
 
