@@ -42,7 +42,7 @@ export class ScheduledTasksService {
   @Cron('10 03,33 * * * *')
   async syncGuestHelpers() {
     const startTime = DateTime.now();
-    this.logger.log('Scheduled run of syncWorkplaceCategoriesAuto');
+    this.logger.log('Scheduled run of syncGuestHelpers');
     if (this.dryRun) {
       this.logger.log('Dry run mode');
     }
