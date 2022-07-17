@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import { PDFDocument, TextAlignment } from 'pdf-lib';
 
-export type FieldData = {
+export type DriversLicenseData = {
   department: string;
   area: string;
   name: string;
@@ -25,13 +25,19 @@ export type FieldData = {
   image: string;
 };
 
+export type AccessCardData = {
+  department: string;
+  area: string;
+  name: string;
+};
+
 @Injectable()
 export class PDFService {
   constructor(private readonly logger: Logger) {}
 
   async generateDriversLicense(
     templatePath: string,
-    formData: FieldData,
+    formData: DriversLicenseData,
     outPath: string,
   ) {
     const uint8Array = fs.readFileSync(templatePath);
@@ -75,6 +81,32 @@ export class PDFService {
     if (formData.image !== null) {
       const image = await pdfDoc.embedJpg(formData.image);
       form.getButton('image').setImage(image);
+    }
+
+    fs.writeFileSync(outPath, await pdfDoc.save());
+    this.logger.log('Wrote ' + outPath);
+  }
+
+  async generateAccessCard(
+    templatePath: string,
+    formData: AccessCardData,
+    outPath: string,
+  ) {
+    const uint8Array = fs.readFileSync(templatePath);
+    const pdfDoc = await PDFDocument.load(uint8Array);
+
+    const form = pdfDoc.getForm();
+
+    for (const field of ['department', 'area', 'name']) {
+      if (formData[field]) {
+        const value = formData[field];
+        form.getTextField(field).setText(formData[field]);
+        if (value.length > 30) {
+          form.getTextField(field).setFontSize(7);
+        } else {
+          form.getTextField(field).setFontSize(8);
+        }
+      }
     }
 
     fs.writeFileSync(outPath, await pdfDoc.save());

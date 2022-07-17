@@ -14,6 +14,13 @@ export type MemberLicenseData = {
   imageStatus: LicenseImageStatus;
 };
 
+export type IdCardData = {
+  name: string;
+  department: string;
+  area: string;
+  cardtype: string;
+};
+
 @Injectable()
 export class ExcelJSService {
   constructor(private readonly logger: Logger) {}
@@ -65,7 +72,13 @@ export class ExcelJSService {
     const worksheet = workbook.worksheets[0];
     const headerRow = worksheet.getRow(1);
     // verify headers.
-    const expectedFields = ['Medlemsnummer', 'Navn', 'Område', 'Udvalg'];
+    const expectedFields = [
+      'Medlemsnummer',
+      'Navn',
+      'Område',
+      'Udvalg',
+      'Printet',
+    ];
 
     const indexColumn = 2;
     // Fields are 1-indexed
@@ -97,6 +110,11 @@ export class ExcelJSService {
       if (!row.getCell(indexColumn).value) {
         return;
       }
+
+      // // Skip printed
+      // if (row.getCell(5).value) {
+      //   return;
+      // }
 
       // TODO, this could be a bit more clever, but will do for now. Keep
       // it in sync with expectedFields
@@ -171,6 +189,46 @@ export class ExcelJSService {
           .getCell(8)
           .value?.toString()
           .trim() as LicenseImageStatus,
+      });
+    });
+    return inputData;
+  }
+
+  async getAccessCardInput(path: string) {
+    const workbook = new Workbook();
+    await workbook.xlsx.readFile(path);
+    const worksheet = workbook.worksheets[0];
+    const headerRow = worksheet.getRow(1);
+    // verify headers.
+    const expectedFields = ['Navn', 'Udvalg', 'Område', 'Korttype'];
+
+    // Fields are 1-indexed
+    for (let i = 1; i < expectedFields.length + 1; i++) {
+      const actualField = headerRow.getCell(i).toString();
+      const expectedField = expectedFields[i - 1];
+
+      if (actualField !== expectedField) {
+        throw new Error(
+          `Expected field ${expectedField} at index ${i} but found ${actualField}`,
+        );
+      }
+    }
+
+    const inputData: IdCardData[] = [];
+
+    worksheet.eachRow(function (row, rowNumber) {
+      // Skip the header row.
+      if (rowNumber == 1) {
+        return;
+      }
+
+      // TODO, this could be a bit more clever, but will do for now. Keep
+      // it in sync with expectedFields
+      inputData.push({
+        name: row.getCell(1).value?.toString().trim(),
+        department: row.getCell(2).value?.toString().trim(),
+        area: row.getCell(3).value?.toString().trim(),
+        cardtype: row.getCell(4).value?.toString().trim(),
       });
     });
     return inputData;

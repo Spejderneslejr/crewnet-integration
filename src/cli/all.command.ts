@@ -746,6 +746,62 @@ export class GenerateLicensePdf implements CommandRunner {
 }
 
 @Command({
+  name: 'general:generateAccessCardPdf',
+  arguments: '<input-sheet> <template-dir>',
+})
+export class GenerateAccessCardPdf implements CommandRunner {
+  constructor(
+    private readonly logger: Logger,
+    private excel: ExcelJSService,
+    private utils: CliUtilsService,
+    private pdf: PDFService,
+  ) {}
+
+  async run(inputs: string[], _options: Record<string, any>): Promise<void> {
+    const inputFile = inputs[0];
+    const templateDir = inputs[1];
+
+    const runBasename = DateTime.now().toFormat('yyyyMMddHHmmss');
+    const outputDir = `output/access-card-export-pdf-${runBasename}`;
+    try {
+      const inputData = await await this.excel.getAccessCardInput(inputFile);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir);
+      }
+
+      // Fetch more data (and the image) for each.
+      for (const inputMemberData of inputData) {
+        const fieldData = {
+          department: inputMemberData.department,
+          area: inputMemberData.area,
+          name: inputMemberData.name,
+        };
+
+        const nameFilenamePart = sanitize(inputMemberData.name)
+          .toLocaleLowerCase()
+          .replace(/ /g, '_');
+        const outputPath =
+          outputDir +
+          '/' +
+          nameFilenamePart +
+          '-' +
+          inputMemberData.cardtype +
+          '.pdf';
+        await this.pdf.generateAccessCard(
+          templateDir + '/hvem_' + inputMemberData.cardtype + '.pdf',
+          fieldData,
+          outputPath,
+        );
+      }
+    } catch (error) {
+      this.logger.error(error, error.stack);
+    }
+
+    return;
+  }
+}
+
+@Command({
   name: 'crewnet:nonCamposUsers',
   arguments: '<output>',
 })

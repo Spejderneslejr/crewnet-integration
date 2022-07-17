@@ -20,6 +20,7 @@ import {
   GenerateLicenseSheet,
   GenerateLicensePdf,
   SyncGuestHelpers,
+  GenerateAccessCardPdf,
 } from './cli/all.command';
 import { CrewnetModule } from './crewnet/crewnet.module';
 import { ConfigModule } from '@nestjs/config';
@@ -59,6 +60,7 @@ import { CampCtlService } from './campctl/campctl.service';
     CSVService,
     EventGetAll,
     ExcelJSService,
+    GenerateAccessCardPdf,
     GenerateLicensePdf,
     GenerateLicenseSheet,
     GroupCreateCommand,
