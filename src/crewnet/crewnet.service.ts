@@ -180,11 +180,16 @@ export class CrewnetService {
   async userUpdate(userId: number, userData: UserUpdate): Promise<void> {
     this.logger.debug(`${this.apiBase}/users/${userId}`);
     this.logger.debug({ userData });
-    const data = await lastValueFrom(
-      this.httpService.put(`${this.apiBase}/users/${userId}`, userData),
-    );
+    try {
+      const data = await lastValueFrom(
+        this.httpService.put(`${this.apiBase}/users/${userId}`, userData),
+      );
 
-    this.logger.debug({ putData: data.data });
+      this.logger.debug({ putData: data.data });
+    } catch (err) {
+      this.logger.error('Error while updating user: ');
+      this.logger.error(err.response.data);
+    }
 
     return;
   }
@@ -595,10 +600,12 @@ export class CrewnetService {
 
       const changed: string[] = [];
 
-      // We're not syncing emails for now, but add the email if the user is on the list.
-      // if (emailSyncList.includes(currentCrewnetUser.id)) {
-      if (updatedCrewnetUser.email != camposUser.email) {
-        updatedCrewnetUser.email = camposUser.email;
+      if (
+        camposUser.email &&
+        camposUser.email !== null &&
+        updatedCrewnetUser.email != camposUser.email.toLowerCase().trim()
+      ) {
+        updatedCrewnetUser.email = camposUser.email.toLowerCase().trim();
         changed.push('email');
       }
       // }

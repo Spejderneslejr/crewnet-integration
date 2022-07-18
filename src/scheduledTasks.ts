@@ -50,7 +50,8 @@ export class ScheduledTasksService {
     this.logDuration('syncGuestHelpers', startTime);
   }
 
-  @Cron('20 5,15,25,35,45,55 * * * *')
+  // Hourly sync - this takes a long time to run.
+  @Cron('20 15 * * * *')
   async syncMemberContactInfo() {
     const startTime = DateTime.now();
     this.logger.log('Scheduled run of syncMemberContactInfo');
