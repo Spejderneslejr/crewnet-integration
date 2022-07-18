@@ -107,11 +107,18 @@ export class CrewnetService {
     }
     let cleaned = user.email.trim().toLocaleLowerCase();
 
+    const matcher = /^(.*)@(hotmail\.com|hotmail\.dk  |gmail\.com)$/;
+
     if (this.usersWithDuplicatedEmail.includes(user.crewnetUserId)) {
       // This is a user we know already has its email registered, so if possible
       // we want to modify the email to be unique.
       // The strategy is to spot email-providers we know support +-mails and
       // inject a +crewnet-sl2022 at the end of the user-part of the address.
+      const match = cleaned.match(matcher);
+      if (match !== null) {
+        // go from eg user@hotmail.com to user+crewnet-sl2022@hotmail.com.
+        cleaned = match[1] + '+crewnet-sl2022' + '@' + match[2];
+      }
     }
 
     return cleaned;
@@ -627,12 +634,10 @@ export class CrewnetService {
       camposUser.email = this.cleanCamposEmailForCrewnet(camposUser);
 
       if (
-        // Temp
-        !this.usersWithDuplicatedEmail.includes(camposUser.crewnetUserId) &&
         camposUser.email !== '' &&
         camposUser.email !== updatedCrewnetUser.email
       ) {
-        updatedCrewnetUser.email = camposUser.email.toLowerCase().trim();
+        updatedCrewnetUser.email = camposUser.email;
         changed.push('email');
       }
 
