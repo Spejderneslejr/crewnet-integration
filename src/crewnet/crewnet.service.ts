@@ -63,9 +63,17 @@ export type SyncWorkplaceCategory = {
   members: number[];
 };
 
+type CamposUser = {
+  crewnetUserId: number;
+  mobileNumber: string | null;
+  email: string;
+  birthdate: string;
+};
+
 @Injectable()
 export class CrewnetService {
   apiBase: string;
+  usersWithDuplicatedEmail: number[] = [];
   constructor(
     private readonly logger: Logger,
     private httpService: HttpService,
@@ -83,6 +91,30 @@ export class CrewnetService {
       // this.logger.debug('Response:', JSON.stringify(response.data, null, 2));
       return response;
     });
+
+    // Comma-separated list of user-ids know to have issues with duplicated emails.
+    const duplicatedConfig = this.configService.get('duplicatedEmailUsers');
+    if (duplicatedConfig) {
+      this.usersWithDuplicatedEmail = duplicatedConfig
+        .split(',')
+        .map((id) => Number.parseInt(id));
+    }
+  }
+
+  cleanCamposEmailForCrewnet(user: CamposUser): string {
+    if (!user.email) {
+      return '';
+    }
+    let cleaned = user.email.trim().toLocaleLowerCase();
+
+    if (this.usersWithDuplicatedEmail.includes(user.crewnetUserId)) {
+      // This is a user we know already has its email registered, so if possible
+      // we want to modify the email to be unique.
+      // The strategy is to spot email-providers we know support +-mails and
+      // inject a +crewnet-sl2022 at the end of the user-part of the address.
+    }
+
+    return cleaned;
   }
 
   async getWorkplaceCategoriesCampOSLookup() {
@@ -187,7 +219,7 @@ export class CrewnetService {
 
       this.logger.debug({ putData: data.data });
     } catch (err) {
-      this.logger.error('Error while updating user: ');
+      this.logger.error('Error while updating user ' + userId + ': ');
       this.logger.error(err.response.data);
     }
 
@@ -545,15 +577,7 @@ export class CrewnetService {
     }
   }
 
-  async syncMemberData(
-    camposUsers: {
-      crewnetUserId: number;
-      mobileNumber: string | null;
-      email: string;
-      birthdate: string;
-    }[],
-    dryRun: boolean,
-  ) {
+  async syncMemberData(camposUsers: CamposUser[], dryRun: boolean) {
     this.logger.log('Considering CampOS ' + camposUsers.length + ' to sync');
     // Fetch the current list of users.
     const crewnetUsers = await this.usersGet();
@@ -600,15 +624,17 @@ export class CrewnetService {
 
       const changed: string[] = [];
 
+      camposUser.email = this.cleanCamposEmailForCrewnet(camposUser);
+
       if (
-        camposUser.email &&
-        camposUser.email !== null &&
-        updatedCrewnetUser.email != camposUser.email.toLowerCase().trim()
+        // Temp
+        !this.usersWithDuplicatedEmail.includes(camposUser.crewnetUserId) &&
+        camposUser.email !== '' &&
+        camposUser.email !== updatedCrewnetUser.email
       ) {
         updatedCrewnetUser.email = camposUser.email.toLowerCase().trim();
         changed.push('email');
       }
-      // }
 
       if (
         updatedCrewnetUser.phone !== camposUser.mobileNumber &&
