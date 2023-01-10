@@ -39,7 +39,7 @@
     "humanize-duration": "^3.27.2",
     "install": "^0.13.0",
     "jimp": "^0.16.1",
-    "luxon": "^2.4.0",
+    "luxon": "^3.2.1",
     "nest-commander": "^2.5.0",
     "npm": "^8.12.1",
     "pdf-lib": "^1.17.1",
