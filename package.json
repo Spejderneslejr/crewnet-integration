@@ -43,7 +43,7 @@
     "nest-commander": "^2.5.0",
     "npm": "^8.12.1",
     "pdf-lib": "^1.17.1",
-    "read-excel-file": "^5.3.3",
+    "read-excel-file": "^5.6.1",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
